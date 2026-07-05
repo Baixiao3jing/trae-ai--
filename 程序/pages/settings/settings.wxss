@@ -1,0 +1,367 @@
+/* pages/settings/settings.wxss */
+
+.user-header {
+  position: relative;
+  padding: 32rpx 32rpx 0;
+  color: #ffffff;
+  overflow: hidden;
+  padding-bottom: 40rpx;
+}
+
+.user-bg {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, #1f5a4d 0%, #2e7d6a 45%, #4db69d 100%);
+  z-index: 0;
+}
+
+.user-bg::after {
+  content: '';
+  position: absolute;
+  bottom: -120rpx;
+  right: -60rpx;
+  width: 360rpx;
+  height: 360rpx;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+.user-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.user-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding-bottom: 28rpx;
+}
+
+.user-avatar {
+  width: 112rpx;
+  height: 112rpx;
+  background: rgba(255,255,255,0.2);
+  border: 4rpx solid rgba(255,255,255,0.35);
+  border-radius: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 56rpx;
+}
+
+.user-info { flex: 1; }
+
+.user-name {
+  font-size: 40rpx;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  line-height: 1.2;
+}
+
+.user-family {
+  font-size: 26rpx;
+  opacity: 0.9;
+  margin-top: 10rpx;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.user-family-icon { font-size: 24rpx; }
+
+.members-preview {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1rpx solid rgba(255, 255, 255, 0.22);
+  border-radius: 20rpx;
+  padding: 20rpx 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  backdrop-filter: blur(10rpx);
+}
+
+.members-preview:active { opacity: 0.85; }
+
+.members-avatars {
+  display: flex;
+  position: relative;
+  width: 120rpx;
+  height: 64rpx;
+  flex-shrink: 0;
+}
+
+.mini-avatar {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  background: #ffffff;
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  position: absolute;
+  top: 2rpx;
+  border: 3rpx solid #ffffff;
+  box-shadow: 0 2rpx 6rpx rgba(0,0,0,0.1);
+}
+
+.mini-avatar:nth-child(1) { left: 0; }
+.mini-avatar:nth-child(2) { left: 30rpx; }
+.mini-avatar:nth-child(3) { left: 60rpx; }
+
+.members-info { flex: 1; }
+.members-count { font-size: 28rpx; font-weight: 700; }
+.members-sub { font-size: 22rpx; opacity: 0.85; margin-top: 4rpx; }
+
+/* 菜单分组 */
+.menu-group {
+  margin-bottom: 28rpx;
+}
+
+.menu-group-title {
+  font-size: 26rpx;
+  color: var(--text-muted);
+  font-weight: 600;
+  padding: 12rpx 8rpx 16rpx;
+}
+
+.menu-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 1rpx solid var(--border);
+  overflow: hidden;
+}
+
+.menu-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 28rpx 24rpx;
+  transition: background 0.15s ease;
+}
+
+.menu-item:active {
+  background: var(--surface-alt);
+}
+
+.menu-icon {
+  width: 76rpx;
+  height: 76rpx;
+  border-radius: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  flex-shrink: 0;
+}
+
+.menu-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.menu-label {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.menu-desc {
+  font-size: 24rpx;
+  color: var(--text-light);
+  margin-top: 6rpx;
+}
+
+.menu-arrow {
+  font-size: 42rpx;
+  color: var(--text-muted);
+  font-weight: 300;
+  flex-shrink: 0;
+}
+
+.menu-line {
+  position: absolute;
+  left: 120rpx;
+  right: 24rpx;
+  bottom: 0;
+  height: 1rpx;
+  background: var(--border);
+}
+
+/* 底部 */
+.footer-note {
+  margin-top: 40rpx;
+  padding: 32rpx 0 20rpx;
+  text-align: center;
+}
+
+.footer-logo {
+  font-size: 28rpx;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: 1rpx;
+}
+
+.footer-ver {
+  font-size: 22rpx;
+  color: var(--text-muted);
+  margin-top: 6rpx;
+}
+
+.footer-tip {
+  font-size: 22rpx;
+  color: var(--text-muted);
+  margin-top: 8rpx;
+}
+
+/* 第四阶段：当前演示身份 */
+.current-role-box {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1rpx solid rgba(255, 255, 255, 0.3);
+  border-radius: 16rpx;
+  padding: 16rpx 20rpx;
+  margin-bottom: 20rpx;
+  backdrop-filter: blur(6rpx);
+}
+.current-role-label {
+  font-size: 22rpx;
+  opacity: 0.9;
+  margin-bottom: 8rpx;
+  font-weight: 600;
+}
+.current-role-content {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex-wrap: wrap;
+}
+.current-role-avatar {
+  width: 48rpx;
+  height: 48rpx;
+  background: rgba(255,255,255,0.22);
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+}
+.current-role-name {
+  font-size: 32rpx;
+  font-weight: 800;
+}
+.current-role-divider {
+  font-size: 26rpx;
+  opacity: 0.7;
+}
+.current-role-tag {
+  background: rgba(255,255,255,0.25);
+  padding: 4rpx 16rpx;
+  border-radius: 100rpx;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+/* 第四阶段：演示角色切换区域 */
+.demo-section {
+  background: var(--surface);
+  border: 1rpx solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28rpx 24rpx;
+  margin-bottom: 28rpx;
+  box-shadow: var(--shadow-sm);
+}
+.demo-section-title {
+  font-size: 30rpx;
+  font-weight: 800;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 6rpx;
+}
+.demo-section-icon { font-size: 30rpx; }
+.demo-section-sub {
+  font-size: 24rpx;
+  color: var(--text-light);
+  margin-bottom: 24rpx;
+  line-height: 1.5;
+}
+.role-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16rpx;
+}
+.role-card {
+  background: #fafcfb;
+  border: 2rpx solid var(--border);
+  border-radius: 20rpx;
+  padding: 20rpx 12rpx 16rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6rpx;
+  position: relative;
+  transition: all 0.15s ease;
+}
+.role-card:active { transform: scale(0.97); }
+.role-card.is-active {
+  background: linear-gradient(135deg, #eafaf1, #ffffff);
+  border-color: #2e7d6a;
+  box-shadow: 0 4rpx 12rpx rgba(46, 125, 106, 0.14);
+}
+.role-card-avatar {
+  width: 72rpx;
+  height: 72rpx;
+  background: #ffffff;
+  border: 3rpx solid var(--border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36rpx;
+  margin-bottom: 4rpx;
+}
+.role-card.is-active .role-card-avatar {
+  border-color: #2e7d6a;
+  background: #eafaf1;
+}
+.role-card-name {
+  font-size: 28rpx;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.2;
+}
+.role-card-tag {
+  font-size: 20rpx;
+  padding: 2rpx 12rpx;
+  border-radius: 100rpx;
+  background: #eef2f1;
+  color: var(--text-light);
+  font-weight: 600;
+}
+.role-card.is-active .role-card-tag {
+  background: #2e7d6a;
+  color: #ffffff;
+}
+.role-card-relation {
+  font-size: 20rpx;
+  color: var(--text-muted);
+}
+.role-card-check {
+  position: absolute;
+  top: 8rpx;
+  right: 8rpx;
+  font-size: 18rpx;
+  color: #2e7d6a;
+  font-weight: 800;
+  background: #ffffff;
+  padding: 2rpx 8rpx;
+  border-radius: 100rpx;
+  border: 1rpx solid #2e7d6a;
+}

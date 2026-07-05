@@ -1,0 +1,206 @@
+/**app.wxss - 药无忧全局样式**/
+
+page {
+  --primary: #2e7d6a;
+  --primary-light: #4db69d;
+  --primary-dark: #1f5a4d;
+  --primary-bg: #e7f2ee;
+  --accent: #e07a5f;
+  --accent-light: #f4a896;
+  --accent-bg: #fdf0ed;
+  --bg: #f7faf8;
+  --surface: #ffffff;
+  --surface-alt: #f0f6f3;
+  --text: #1f2a27;
+  --text-light: #556b66;
+  --text-muted: #8fa09b;
+  --border: #e0ebe6;
+  --success: #27ae60;
+  --success-bg: #eafaf1;
+  --warning: #f39c12;
+  --warning-bg: #fff8e1;
+  --danger: #e74c3c;
+  --danger-bg: #fdecea;
+  --info: #3498db;
+  --info-bg: #e8f4fd;
+  --radius: 16rpx;
+  --radius-lg: 24rpx;
+  --radius-sm: 10rpx;
+  --shadow-sm: 0 4rpx 16rpx rgba(46, 125, 106, 0.08);
+  --shadow-md: 0 8rpx 32rpx rgba(46, 125, 106, 0.12);
+
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 28rpx;
+  line-height: 1.6;
+}
+
+.page {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding-bottom: 40rpx;
+}
+
+.container {
+  padding: 24rpx 32rpx;
+  box-sizing: border-box;
+}
+
+/* 卡片通用 */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 32rpx;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 24rpx;
+  border: 1rpx solid var(--border);
+}
+
+/* 标题 */
+.section-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 24rpx;
+  display: flex;
+  align-items: center;
+}
+
+.section-title::before {
+  content: '';
+  display: inline-block;
+  width: 8rpx;
+  height: 32rpx;
+  background: var(--primary);
+  border-radius: 4rpx;
+  margin-right: 16rpx;
+}
+
+/* 按钮 */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20rpx 40rpx;
+  border-radius: var(--radius);
+  font-size: 30rpx;
+  font-weight: 600;
+  line-height: 1;
+  border: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.btn-primary:active {
+  background: var(--primary-dark);
+}
+
+.btn-outline {
+  background: #ffffff;
+  color: var(--primary);
+  border: 2rpx solid var(--primary);
+}
+
+.btn-outline:active {
+  background: var(--primary-bg);
+}
+
+.btn-accent {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.btn-block {
+  width: 100%;
+  display: flex;
+}
+
+/* 标签 */
+.tag {
+  display: inline-block;
+  padding: 6rpx 18rpx;
+  border-radius: 100rpx;
+  font-size: 22rpx;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.tag-primary { background: var(--primary-bg); color: var(--primary); }
+.tag-success { background: var(--success-bg); color: var(--success); }
+.tag-warning { background: var(--warning-bg); color: var(--warning); }
+.tag-danger  { background: var(--danger-bg);  color: var(--danger); }
+.tag-info    { background: var(--info-bg);    color: var(--info); }
+.tag-accent  { background: var(--accent-bg);  color: var(--accent); }
+.tag-muted   { background: #f0f2f1;           color: var(--text-muted); }
+
+/* 通用 flex */
+.row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.row-between {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-1 { flex: 1; }
+.flex-wrap { flex-wrap: wrap; }
+
+/* 间距 */
+.mt-8 { margin-top: 8rpx; }
+.mt-16 { margin-top: 16rpx; }
+.mt-24 { margin-top: 24rpx; }
+.mt-32 { margin-top: 32rpx; }
+.mb-8  { margin-bottom: 8rpx; }
+.mb-16 { margin-bottom: 16rpx; }
+.mb-24 { margin-bottom: 24rpx; }
+.mb-32 { margin-bottom: 32rpx; }
+
+/* 文字 */
+.text-bold { font-weight: 700; }
+.text-primary { color: var(--primary); }
+.text-accent { color: var(--accent); }
+.text-success { color: var(--success); }
+.text-warning { color: var(--warning); }
+.text-danger { color: var(--danger); }
+.text-light { color: var(--text-light); }
+.text-muted { color: var(--text-muted); }
+.text-sm { font-size: 24rpx; }
+.text-lg { font-size: 32rpx; }
+.text-xl { font-size: 40rpx; }
+.text-center { text-align: center; }
+
+/* 分割线 */
+.divider {
+  height: 1rpx;
+  background: var(--border);
+  margin: 24rpx 0;
+}
+
+/* 空状态 */
+.empty {
+  padding: 80rpx 32rpx;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.empty-icon {
+  font-size: 120rpx;
+  margin-bottom: 24rpx;
+  opacity: 0.5;
+}

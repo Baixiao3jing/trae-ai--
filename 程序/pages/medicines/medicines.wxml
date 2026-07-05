@@ -1,0 +1,149 @@
+<!--pages/medicines/medicines.wxml  第二阶段：主档+批次汇总，4组筛选器-->
+<view class="page">
+  <!-- 顶部标题栏 -->
+  <view class="filter-bar">
+    <view class="filter-info">
+      <view class="filter-title">💊 {{familyName}}</view>
+      <view class="filter-sub">
+        共 {{totalCount}} 种药品 · 主档视图，批次详情请点进药品卡片
+      </view>
+    </view>
+  </view>
+
+  <!-- 4 组筛选器：横向滚动，保持简洁 -->
+  <!-- 1) 状态筛选 -->
+  <view class="filter-row">
+    <view class="filter-row-label">状态</view>
+    <scroll-view scroll-x class="filter-scroll" enhanced show-scrollbar="{{false}}">
+      <view
+        class="chip {{activeStatus === item.key ? 'chip-active' : ''}}"
+        wx:for="{{filterGroups.statuses}}"
+        wx:key="key"
+        data-key="{{item.key}}"
+        bindtap="onStatusTap"
+      >{{item.label}}</view>
+    </scroll-view>
+  </view>
+  <!-- 2) 使用人筛选 -->
+  <view class="filter-row">
+    <view class="filter-row-label">使用人</view>
+    <scroll-view scroll-x class="filter-scroll" enhanced show-scrollbar="{{false}}">
+      <view
+        class="chip {{activeMember === item.key ? 'chip-active' : ''}}"
+        wx:for="{{filterGroups.members}}"
+        wx:key="key"
+        data-key="{{item.key}}"
+        bindtap="onMemberTap"
+      >{{item.label}}</view>
+    </scroll-view>
+  </view>
+  <!-- 3) 类别筛选 -->
+  <view class="filter-row">
+    <view class="filter-row-label">类别</view>
+    <scroll-view scroll-x class="filter-scroll" enhanced show-scrollbar="{{false}}">
+      <view
+        class="chip {{activeCategory === item.key ? 'chip-active' : ''}}"
+        wx:for="{{filterGroups.categories}}"
+        wx:key="key"
+        data-key="{{item.key}}"
+        bindtap="onCategoryTap"
+      >{{item.label}}</view>
+    </scroll-view>
+  </view>
+  <!-- 4) 位置筛选 -->
+  <view class="filter-row filter-row-last">
+    <view class="filter-row-label">位置</view>
+    <scroll-view scroll-x class="filter-scroll" enhanced show-scrollbar="{{false}}">
+      <view
+        class="chip {{activeLocation === item.key ? 'chip-active' : ''}}"
+        wx:for="{{filterGroups.locations}}"
+        wx:key="key"
+        data-key="{{item.key}}"
+        bindtap="onLocationTap"
+      >{{item.label}}</view>
+    </scroll-view>
+    <view
+      wx:if="{{activeStatus !== 'all' || activeMember !== 'all' || activeCategory !== 'all' || activeLocation !== 'all'}}"
+      class="reset-btn"
+      bindtap="onResetFilters"
+    >重置</view>
+  </view>
+
+  <view class="container">
+    <!-- 药品主档列表（每种药一张卡片，不按批次拆分） -->
+    <block wx:if="{{filteredCards.length > 0}}">
+      <view
+        class="med-card"
+        wx:for="{{filteredCards}}"
+        wx:key="id"
+        data-id="{{item.id}}"
+        bindtap="goDetail"
+      >
+        <view class="med-left">
+          <view class="med-icon" style="background: {{item.categoryColor}}22; color: {{item.categoryColor}};">
+            💊
+          </view>
+        </view>
+
+        <view class="med-main">
+          <view class="med-header">
+            <view class="med-name">{{item.name}}</view>
+            <view
+              class="tag"
+              style="background: {{item.statusColor}}18; color: {{item.statusColor}};"
+            >
+              {{item.statusLabel}}
+              <text wx:if="{{item.needRestock}}" class="restock-dot"> · 建议补货</text>
+            </view>
+          </view>
+
+          <view class="med-meta-row">
+            <text class="tag tag-primary">{{item.category}}</text>
+            <text class="med-for">
+              <text class="med-for-icon">👤</text>{{item.forMember}}
+            </text>
+            <text class="med-loc">
+              <text class="med-for-icon">📍</text>{{item.storageLocation}}
+            </text>
+          </view>
+
+          <view class="med-footer">
+            <view class="med-stats">
+              <view class="med-stat">
+                <text class="med-stat-num text-primary">{{item.availableStock}}</text>
+                <text class="med-stat-label">可用库存</text>
+              </view>
+              <view class="med-stat">
+                <text class="med-stat-num">{{item.batchCount}}</text>
+                <text class="med-stat-label">批次数量</text>
+              </view>
+              <view class="med-stat">
+                <text class="med-stat-num {{item.status === 'nearExpire' ? 'text-warning' : (item.status === 'expired' ? 'text-danger' : 'text-light')}}">{{item.nearestExpire}}</text>
+                <text class="med-stat-label">最近有效期</text>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view class="med-arrow">›</view>
+      </view>
+    </block>
+
+    <view wx:else class="empty">
+      <view class="empty-icon">📭</view>
+      <view>当前筛选条件下没有药品</view>
+      <view class="text-sm text-muted mt-16">试试点击"重置"按钮恢复全部</view>
+    </view>
+
+    <!-- 底部安全提示 -->
+    <view class="safe-note mt-24">
+      <text>📌 本产品仅做家庭药品库存、有效期、服用提醒与补货管理，不提供用药建议，具体请遵医嘱。</text>
+    </view>
+  </view>
+
+  <!-- 底部浮动添加按钮 -->
+  <view class="add-floating" bindtap="goAddMedicine">
+    <text class="add-floating-icon">+</text>
+    <text class="add-floating-text">添加药品</text>
+  </view>
+</view>

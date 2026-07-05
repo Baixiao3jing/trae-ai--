@@ -1,0 +1,561 @@
+<!-- pages/add-medicine/add-medicine.wxml -->
+<view class="page">
+  <view class="container no-tab-pb">
+
+    <!-- ========= 顶部流程进度条（非 choose / 非 success 显示） ========= -->
+    <block wx:if="{{step !== 'choose'}}">
+      <view class="stepper-wrap">
+        <view
+          class="stepper-item {{item.active ? 'is-active' : ''}} {{item.done ? 'is-done' : ''}}"
+          wx:for="{{stepper}}"
+          wx:key="idx"
+        >
+          <view class="stepper-dot">
+            <text wx:if="{{item.done}}">✓</text>
+            <text wx:else>{{item.idx}}</text>
+          </view>
+          <view class="stepper-label">{{item.title}}</view>
+          <view wx:if="{{index < 3}}" class="stepper-line {{item.done ? 'is-done' : ''}}"></view>
+        </view>
+      </view>
+    </block>
+
+    <!-- ========= Step 1：choose ========= -->
+    <block wx:if="{{step === 'choose'}}">
+      <view class="intro-card">
+        <view class="intro-icon">💊</view>
+        <view class="intro-main">
+          <view class="intro-title">选择录入方式</view>
+          <view class="intro-desc">
+            推荐先用条码扫出药品基础信息，再拍有效期区域识别批次；识别失败可手动录入兜底。
+          </view>
+        </view>
+      </view>
+
+      <view class="way-card way-scan" bindtap="onScanBarcode">
+        <view class="way-left">
+          <view class="way-icon" style="background: #e7f2ee; color: #2e7d6a;">📷</view>
+          <view class="way-main">
+            <view class="way-title-row">
+              <text class="way-title">扫条码录入</text>
+              <text class="tag tag-success">推荐</text>
+            </view>
+            <view class="way-desc">优先扫药盒条码，系统匹配药品名、规格、厂家等基础信息</view>
+            <view class="way-tips">
+              <text class="way-tip">✓ 减少手动输入</text>
+              <text class="way-tip">✓ 基础信息更准确</text>
+            </view>
+          </view>
+        </view>
+        <view class="way-go"><text class="way-go-text">扫码</text><text class="way-go-arrow">›</text></view>
+      </view>
+
+      <view class="way-card way-ocr" bindtap="onTakePhoto">
+        <view class="way-left">
+          <view class="way-icon" style="background: #e8f4fd; color: #3498db;">📸</view>
+          <view class="way-main">
+            <view class="way-title-row">
+              <text class="way-title">拍药盒识别</text>
+              <text class="tag tag-info">补充批次</text>
+            </view>
+            <view class="way-desc">对准生产日期、有效期、批号区域拍照，OCR 提取批次字段</view>
+            <view class="way-tips">
+              <text class="way-tip">✓ 识别有效期</text>
+              <text class="way-tip">✓ 显示置信度</text>
+            </view>
+          </view>
+        </view>
+        <view class="way-go"><text class="way-go-text">拍照</text><text class="way-go-arrow">›</text></view>
+      </view>
+
+      <view class="way-card way-manual" bindtap="onManualInput">
+        <view class="way-left">
+          <view class="way-icon" style="background: #fff8e1; color: #f39c12;">✏️</view>
+          <view class="way-main">
+            <view class="way-title-row">
+              <text class="way-title">手动录入</text>
+              <text class="tag tag-warning">兜底</text>
+            </view>
+            <view class="way-desc">条码/OCR 不可用时，直接手填药品信息</view>
+            <view class="way-tips">
+              <text class="way-tip">✓ 支持保存草稿</text>
+              <text class="way-tip">✓ 小众药品也能加</text>
+            </view>
+          </view>
+        </view>
+        <view class="way-go"><text class="way-go-text">录入</text><text class="way-go-arrow">›</text></view>
+      </view>
+
+      <view class="notice-card">
+        <view class="notice-title"><text class="notice-icon">🔒</text>关于 AI 识别说明</view>
+        <view class="notice-desc">
+          条码 + OCR 识别结果均需您核对确认后才会写入家庭药品台账，低置信度字段会用醒目标记提示您核对。未确认前只保存为草稿。
+        </view>
+        <view class="notice-border mt-16">
+          <text class="text-muted text-sm">药无忧不判断药品疗效、不推荐用药，具体请遵医嘱。</text>
+        </view>
+      </view>
+    </block>
+
+    <!-- ========= Step 2：barcode ========= -->
+    <block wx:elif="{{step === 'barcode'}}">
+      <!-- 顶部：返回按钮 -->
+      <view class="top-back" bindtap="onBackToChoose">
+        <text class="top-back-arrow">‹</text>
+        <text class="top-back-text">返回选择录入方式</text>
+      </view>
+
+      <view class="card">
+        <view class="card-title">模拟扫码区域</view>
+        <view class="simulate-scan">
+          <view class="scan-corner scan-tl"></view>
+          <view class="scan-corner scan-tr"></view>
+          <view class="scan-corner scan-bl"></view>
+          <view class="scan-corner scan-br"></view>
+          <view class="scan-line"></view>
+          <text class="scan-hint">请在下方选择一个模拟条码，点击开始识别</text>
+        </view>
+
+        <view class="mock-list mt-20">
+          <view
+            class="mock-item {{selectedBarcodeIdx === index ? 'is-active' : ''}}"
+            wx:for="{{barcodeLibrary}}"
+            wx:key="barcode"
+            data-idx="{{index}}"
+            bindtap="onSelectBarcode"
+          >
+            <view class="mock-item-head">
+              <text class="mock-item-icon">{{item.icon}}</text>
+              <view class="mock-item-main">
+                <view class="mock-item-name">{{item.name}}</view>
+                <view class="mock-item-code">条码 {{item.barcode}}</view>
+              </view>
+              <view class="mock-item-check">{{selectedBarcodeIdx === index ? '✓' : ''}}</view>
+            </view>
+            <view class="mock-item-sub">
+              <text class="tag-sm">{{item.category}}</text>
+              <text class="tag-sm tag-muted">{{item.defaultTargetMemberLabel}}</text>
+              <text class="tag-sm tag-muted">{{item.defaultStorageLocation}}</text>
+            </view>
+          </view>
+        </view>
+
+        <button class="btn btn-primary btn-block mt-24" bindtap="onStartBarcodeRecognize" loading="{{false}}">
+          开始识别
+        </button>
+      </view>
+
+      <!-- 识别结果卡片 -->
+      <block wx:if="{{barcodeRecognized && barcodeResult}}">
+        <view class="card result-card">
+          <view class="result-title">
+            <text class="result-title-icon">📝</text>
+            <text>条码识别结果</text>
+            <text class="result-confidence" style="color: #27ae60;">置信度 {{barcodeResult.confidencePercent}}%</text>
+          </view>
+
+          <view class="result-row" wx:if="{{barcodeResult.medicine.barcode}}">
+            <text class="result-k">条码</text>
+            <text class="result-v">{{barcodeResult.medicine.barcode}}</text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">药品名</text>
+            <text class="result-v text-primary">{{barcodeResult.medicine.name}}</text>
+          </view>
+          <view class="result-row" wx:if="{{barcodeResult.medicine.genericName}}">
+            <text class="result-k">通用名</text>
+            <text class="result-v">{{barcodeResult.medicine.genericName}}</text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">类别</text>
+            <text class="result-v">{{barcodeResult.medicine.category}}</text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">规格</text>
+            <text class="result-v">{{barcodeResult.medicine.specification}}</text>
+          </view>
+          <view class="result-row" wx:if="{{barcodeResult.medicine.manufacturer}}">
+            <text class="result-k">厂家</text>
+            <text class="result-v">{{barcodeResult.medicine.manufacturer}}</text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">默认使用人</text>
+            <text class="result-v">{{barcodeResult.targetMemberLabel || barcodeResult.medicine.targetMemberLabel}}</text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">默认存放</text>
+            <text class="result-v">{{barcodeResult.medicine.storageLocation}}</text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">识别来源</text>
+            <text class="result-v">条码</text>
+          </view>
+
+          <view wx:if="{{lowMedicineConfidence}}" class="low-note mt-16">
+            ⚠️ 该字段识别置信度较低，请人工核对后再保存。
+          </view>
+
+          <view class="btn-row mt-24">
+            <button class="btn btn-ghost" bindtap="onBarcodeManual">条码不对，手动录入</button>
+            <button class="btn btn-primary" bindtap="onBarcodeNextOcr">下一步：拍药盒识别有效期</button>
+          </view>
+        </view>
+      </block>
+    </block>
+
+    <!-- ========= Step 3：ocr ========= -->
+    <block wx:elif="{{step === 'ocr'}}">
+      <view class="top-back" bindtap="onBackToPrev">
+        <text class="top-back-arrow">‹</text>
+        <text class="top-back-text">返回上一步</text>
+      </view>
+
+      <view class="card">
+        <view class="card-title">模拟 OCR 识别</view>
+        <view class="ocr-scan">
+          <view class="ocr-scan-title">📸  对准药盒有效期 / 批号区域</view>
+          <view class="ocr-scan-desc">比赛演示版：请选择下方一种识别结果，系统会按场景返回不同的字段与置信度。</view>
+        </view>
+
+        <view class="mock-list mt-20">
+          <view
+            class="mock-item {{selectedOcrKey === item.key ? 'is-active' : ''}}"
+            wx:for="{{ocrScenarios}}"
+            wx:key="key"
+            data-key="{{item.key}}"
+            bindtap="onSelectOcr"
+          >
+            <view class="mock-item-head">
+              <text class="mock-item-icon">{{item.icon}}</text>
+              <view class="mock-item-main">
+                <view class="mock-item-name">{{item.label}}</view>
+                <view class="mock-item-code">{{item.desc}}</view>
+              </view>
+              <view class="mock-item-check">{{selectedOcrKey === item.key ? '✓' : ''}}</view>
+            </view>
+          </view>
+        </view>
+
+        <button class="btn btn-primary btn-block mt-24" bindtap="onStartOcrRecognize">
+          开始识别
+        </button>
+      </view>
+
+      <!-- OCR 成功结果 -->
+      <block wx:if="{{ocrRecognized && ocrResult && ocrResult.success}}">
+        <view class="card result-card">
+          <view class="result-title">
+            <text class="result-title-icon">🔍</text>
+            <text>OCR 批次识别结果</text>
+            <text
+              class="result-confidence"
+              style="color: {{lowBatchConfidence ? '#f39c12' : '#27ae60'}};"
+            >置信度 {{ocrResult.confidencePercent}}%</text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">批号</text>
+            <text class="result-v text-primary">{{ocrResult.batch.batchNo}}</text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">生产日期</text>
+            <text class="result-v">{{ocrResult.batch.productionDate}}</text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">有效期至</text>
+            <text class="result-v">{{ocrResult.batch.expireDate}}</text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">总数量</text>
+            <text class="result-v">{{ocrResult.batch.totalQuantity}} {{ocrResult.batch.unit}}</text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">默认剩余</text>
+            <text class="result-v">{{ocrResult.batch.remainingQuantity}} {{ocrResult.batch.unit}}</text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">日期来源</text>
+            <text class="result-v">{{ocrResult.batch.imageSourceNote}}</text>
+          </view>
+
+          <view wx:if="{{lowBatchConfidence}}" class="low-note mt-16">
+            ⚠️ 该字段识别置信度较低，请人工核对后再保存。
+          </view>
+
+          <view class="btn-row mt-24">
+            <button class="btn btn-ghost" bindtap="onRetryOcr">重新识别</button>
+            <button class="btn btn-primary" bindtap="onOcrNextConfirm">进入人工确认</button>
+          </view>
+        </view>
+      </block>
+
+      <!-- OCR 失败结果 -->
+      <block wx:if="{{ocrRecognized && ocrResult && !ocrResult.success}}">
+        <view class="card fail-card">
+          <view class="fail-icon">❌</view>
+          <view class="fail-title">识别失败</view>
+          <view class="fail-desc">{{ocrResult.errorMessage || '无法识别有效期，请重新拍摄或手动录入。'}}</view>
+
+          <view class="btn-row mt-24">
+            <button class="btn btn-ghost" bindtap="onSaveOcrDraft">保存草稿</button>
+            <button class="btn btn-ghost" bindtap="onRetryOcr">重新识别</button>
+            <button class="btn btn-primary" bindtap="onOcrManual">手动录入</button>
+          </view>
+        </view>
+      </block>
+    </block>
+
+    <!-- ========= Step 4：confirm ========= -->
+    <block wx:elif="{{step === 'confirm'}}">
+      <view class="top-back" bindtap="onBackToPrev">
+        <text class="top-back-arrow">‹</text>
+        <text class="top-back-text">返回上一步</text>
+      </view>
+
+      <!-- 安全提示 -->
+      <view class="safety-card">
+        <view class="safety-item" wx:for="{{safetyNotices}}" wx:key="*this">
+          <text class="safety-icon">ℹ️</text>
+          <text class="safety-text">{{item}}</text>
+        </view>
+      </view>
+
+      <!-- 匹配预览：新建主档 or 新增批次 -->
+      <view class="match-card" wx:if="{{matchPreview}}" style="background: {{matchPreview.cardBg}}; color: {{matchPreview.cardFg}};">
+        <view class="match-head">
+          <text class="match-icon">{{matchPreview.cardIcon}}</text>
+          <view class="match-main">
+            <view class="match-summary">{{matchPreview.actionText}}</view>
+            <view class="match-sub">{{matchPreview.reasonLabel}}</view>
+          </view>
+        </view>
+      </view>
+
+      <!-- A. 药品主档信息 -->
+      <view class="card confirm-section">
+        <view class="section-title-row">
+          <text class="section-title">A · 药品基础信息</text>
+          <text class="section-src" wx:if="{{sources.medicineSource === 'barcode'}}">来源：条码</text>
+          <text class="section-src section-src-warn" wx:elif="{{sources.medicineSource === 'ocr'}}">来源：OCR</text>
+          <text class="section-src section-src-manual" wx:else>来源：手动（100%）</text>
+        </view>
+        <view wx:if="{{lowMedicineConfidence}}" class="low-note mb-12">
+          ⚠️ 该字段识别置信度较低，请人工核对后再保存。
+        </view>
+
+        <view class="form-field {{errorMap.name ? 'has-error' : ''}}">
+          <view class="form-label"><text class="req">*</text>药品名称</view>
+          <input class="form-input" placeholder="例如：硝苯地平控释片" value="{{form.medicine.name}}" data-field="name" bindinput="onMedInput" />
+          <text wx:if="{{errorMap.name}}" class="form-error">{{errorMap.name}}</text>
+        </view>
+        <view class="form-field">
+          <view class="form-label">通用名</view>
+          <input class="form-input" placeholder="可留空，与药品名相同时填" value="{{form.medicine.genericName}}" data-field="genericName" bindinput="onMedInput" />
+        </view>
+        <view class="form-field {{errorMap.specification ? 'has-error' : ''}}">
+          <view class="form-label"><text class="req">*</text>规格</view>
+          <input class="form-input" placeholder="例如：30mg × 7片 × 2板" value="{{form.medicine.specification}}" data-field="specification" bindinput="onMedInput" />
+          <text wx:if="{{errorMap.specification}}" class="form-error">{{errorMap.specification}}</text>
+        </view>
+        <view class="form-field">
+          <view class="form-label">厂家</view>
+          <input class="form-input" placeholder="可留空" value="{{form.medicine.manufacturer}}" data-field="manufacturer" bindinput="onMedInput" />
+        </view>
+        <view class="form-field">
+          <view class="form-label">条码</view>
+          <input class="form-input" placeholder="可留空，扫码时自动填充" value="{{form.medicine.barcode}}" data-field="barcode" bindinput="onMedInput" />
+        </view>
+        <view class="form-field {{errorMap.category ? 'has-error' : ''}}">
+          <view class="form-label"><text class="req">*</text>类别</view>
+          <picker mode="selector" range="{{categoryOptions}}" value="{{categoryPickerIdx}}" bindchange="onCategoryPicker">
+            <view class="form-picker">
+              <text>{{categoryOptions[categoryPickerIdx]}}</text>
+              <text class="picker-arrow">›</text>
+            </view>
+          </picker>
+          <text wx:if="{{errorMap.category}}" class="form-error">{{errorMap.category}}</text>
+        </view>
+        <view class="form-field {{errorMap.targetMemberIds ? 'has-error' : ''}}">
+          <view class="form-label"><text class="req">*</text>使用人</view>
+          <picker mode="selector" range="{{memberPickerOptions}}" value="{{memberPickerIdx}}" bindchange="onMemberPicker">
+            <view class="form-picker">
+              <text>{{memberPickerOptions[memberPickerIdx]}}</text>
+              <text class="picker-arrow">›</text>
+            </view>
+          </picker>
+          <text wx:if="{{errorMap.targetMemberIds}}" class="form-error">{{errorMap.targetMemberIds}}</text>
+        </view>
+        <view class="form-field {{errorMap.storageLocation ? 'has-error' : ''}}">
+          <view class="form-label"><text class="req">*</text>存放位置</view>
+          <picker mode="selector" range="{{locationOptions}}" value="{{locationPickerIdx}}" bindchange="onLocationPicker">
+            <view class="form-picker">
+              <text>{{locationOptions[locationPickerIdx]}}</text>
+              <text class="picker-arrow">›</text>
+            </view>
+          </picker>
+          <text wx:if="{{errorMap.storageLocation}}" class="form-error">{{errorMap.storageLocation}}</text>
+        </view>
+      </view>
+
+      <!-- B. 批次信息 -->
+      <view class="card confirm-section">
+        <view class="section-title-row">
+          <text class="section-title">B · 批次库存信息</text>
+          <text class="section-src" wx:if="{{sources.batchSource === 'ocr'}}">来源：OCR</text>
+          <text class="section-src section-src-manual" wx:elif="{{sources.batchSource === 'manual'}}">来源：手动（100%）</text>
+          <text class="section-src section-src-warn" wx:else>来源：—</text>
+        </view>
+        <view wx:if="{{lowBatchConfidence}}" class="low-note mb-12">
+          ⚠️ 该字段识别置信度较低，请人工核对后再保存。
+        </view>
+
+        <view class="form-field">
+          <view class="form-label">批号</view>
+          <input class="form-input" placeholder="例如：BJ260105-A" value="{{form.batch.batchNo}}" data-field="batchNo" bindinput="onBatchInput" />
+        </view>
+        <view class="form-field">
+          <view class="form-label">生产日期</view>
+          <picker mode="date" value="{{form.batch.productionDate}}" bindchange="onProdDateChange">
+            <view class="form-picker">
+              <text>{{form.batch.productionDate || '点击选择生产日期'}}</text>
+              <text class="picker-arrow">›</text>
+            </view>
+          </picker>
+        </view>
+        <view class="form-field {{errorMap.expireDate ? 'has-error' : ''}}">
+          <view class="form-label"><text class="req">*</text>有效期至</view>
+          <picker mode="date" value="{{form.batch.expireDate}}" bindchange="onExpireDateChange">
+            <view class="form-picker">
+              <text>{{form.batch.expireDate || '点击选择有效期'}}</text>
+              <text class="picker-arrow">›</text>
+            </view>
+          </picker>
+          <text wx:if="{{errorMap.expireDate}}" class="form-error">{{errorMap.expireDate}}</text>
+        </view>
+        <view class="form-field-row">
+          <view class="form-field flex-1 {{errorMap.totalQuantity ? 'has-error' : ''}}">
+            <view class="form-label"><text class="req">*</text>总数量</view>
+            <input type="number" class="form-input" placeholder="例如：28" value="{{form.batch.totalQuantity}}" data-field="totalQuantity" bindinput="onBatchInput" />
+            <text wx:if="{{errorMap.totalQuantity}}" class="form-error">{{errorMap.totalQuantity}}</text>
+          </view>
+          <view class="form-field flex-1 ml-16">
+            <view class="form-label">单位</view>
+            <input class="form-input" placeholder="片 / 粒 / 支 / 盒" value="{{form.batch.unit}}" data-field="unit" bindinput="onBatchInput" />
+          </view>
+        </view>
+        <view class="form-field {{errorMap.remainingQuantity ? 'has-error' : ''}}">
+          <view class="form-label"><text class="req">*</text>剩余数量</view>
+          <input type="number" class="form-input" placeholder="默认等于总数量" value="{{form.batch.remainingQuantity}}" data-field="remainingQuantity" bindinput="onBatchInput" />
+          <text wx:if="{{errorMap.remainingQuantity}}" class="form-error">{{errorMap.remainingQuantity}}</text>
+        </view>
+        <view class="form-field">
+          <view class="form-label">日期来源标注</view>
+          <textarea class="form-textarea" placeholder="可说明文字在包装哪个位置，例如：有效期来自包装侧面第 2 行" value="{{form.batch.imageSourceNote}}" data-field="imageSourceNote" bindinput="onBatchInput" auto-height></textarea>
+        </view>
+        <view class="form-field">
+          <view class="form-label">批次数据来源</view>
+          <view class="batch-meta-card">
+            <view class="batch-meta-row">
+              <text class="batch-meta-k">置信度</text>
+              <text class="batch-meta-v">{{sources.batchSource === 'manual' ? '100%（用户手动录入，视为已确认）' : form.batch ? '以识别结果为准，可人工复核' : '-'}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 按钮组 -->
+      <view class="btn-col">
+        <button class="btn btn-ghost btn-block" bindtap="onBackReIdentify">返回重识别</button>
+        <button class="btn btn-ghost btn-block mt-12" bindtap="onSaveDraft">保存草稿</button>
+        <button class="btn btn-primary btn-block mt-12" bindtap="onConfirmSave">确认保存</button>
+      </view>
+    </block>
+
+    <!-- ========= Step 5：success ========= -->
+    <block wx:elif="{{step === 'success'}}">
+      <view class="success-wrap">
+        <view class="success-icon-big">✅</view>
+        <view class="success-title">保存成功</view>
+        <view class="success-sub" wx:if="{{savePreview}}">{{savePreview.actionSummary}}</view>
+
+        <view class="card mt-32">
+          <view class="section-title-row">
+            <text class="section-title">药品主档</text>
+            <text class="section-src">{{savePreview.medicineSource}}识别</text>
+          </view>
+          <view class="result-row" wx:if="{{savePreview.finalMedicine.barcode}}">
+            <text class="result-k">条码</text>
+            <text class="result-v">{{savePreview.finalMedicine.barcode}}</text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">药品名</text>
+            <text class="result-v text-primary">{{savePreview.finalMedicine.name}}</text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">规格</text>
+            <text class="result-v">{{savePreview.finalMedicine.specification}}</text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">使用人</text>
+            <text class="result-v">{{savePreview.finalMedicine.targetMemberLabel || memberLabels[savePreview.finalMedicine.targetMemberIds[0]] || '全家备用'}}</text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">存放位置</text>
+            <text class="result-v">{{savePreview.finalMedicine.storageLocation}}</text>
+          </view>
+        </view>
+
+        <view class="card">
+          <view class="section-title-row">
+            <text class="section-title">新增批次</text>
+            <text class="section-src">{{savePreview.batchSource}}识别</text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">批号</text>
+            <text class="result-v">{{savePreview.finalBatch.batchNo || '（未填写，系统会自动生成）'}}</text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">生产日期</text>
+            <text class="result-v">{{savePreview.finalBatch.productionDate || '—'}}</text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">有效期至</text>
+            <text class="result-v">
+              {{savePreview.finalBatch.expireDate}}
+              <text class="text-sm text-muted">（{{savePreview.expireDaysText}}）</text>
+            </text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">剩余 / 总数</text>
+            <text class="result-v">
+              {{savePreview.finalBatch.remainingQuantity}} / {{savePreview.finalBatch.totalQuantity}} {{savePreview.finalBatch.unit}}
+            </text>
+          </view>
+          <view class="result-row">
+            <text class="result-k">批次状态</text>
+            <text class="tag" style="background: {{savePreview.batchStatusColor}}22; color: {{savePreview.batchStatusColor}}; border: 1rpx solid {{savePreview.batchStatusColor}}33;">
+              {{savePreview.batchStatusLabel}}
+            </text>
+          </view>
+        </view>
+
+        <view class="notice-card">
+          <view class="notice-title"><text class="notice-icon">ℹ️</text>版本说明</view>
+          <view class="notice-desc">
+            当前为演示版本：展示了"已找到同名药品 → 新增批次"或"创建新主档 + 首批次"的两种逻辑分支；正式版本会在这一步把数据写入家庭药品台账。
+          </view>
+        </view>
+
+        <view class="btn-col">
+          <button class="btn btn-primary btn-block" bindtap="onGoMedicines">查看药箱</button>
+          <button
+            class="btn {{savePreview.showDetailBtn ? 'btn-ghost' : 'btn-ghost btn-disabled'}} btn-block mt-12"
+            bindtap="onGoDetail"
+          >
+            {{savePreview.showDetailBtn ? '查看药品详情' : '查看药品详情（演示：新药暂未真实写入）'}}
+          </button>
+        </view>
+      </view>
+    </block>
+
+  </view>
+</view>

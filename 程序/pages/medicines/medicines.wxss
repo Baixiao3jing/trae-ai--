@@ -1,0 +1,314 @@
+/* pages/medicines/medicines.wxss */
+
+/* ============= 第二阶段新增：筛选器区域 ============= */
+.filter-row {
+  display: flex;
+  align-items: center;
+  background: var(--surface);
+  border-bottom: 1rpx solid var(--border);
+  padding: 16rpx 0 16rpx 32rpx;
+}
+
+.filter-row-last {
+  padding-bottom: 20rpx;
+  margin-bottom: 8rpx;
+}
+
+.filter-row-label {
+  flex-shrink: 0;
+  width: 96rpx;
+  font-size: 24rpx;
+  color: var(--text-light);
+  font-weight: 600;
+}
+
+.filter-scroll {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 12rpx 26rpx;
+  background: var(--surface-alt);
+  color: var(--text-light);
+  border-radius: 100rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+  margin-right: 14rpx;
+  transition: all 0.15s ease;
+}
+
+.chip-active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 4rpx 14rpx rgba(46, 125, 106, 0.3);
+}
+
+.reset-btn {
+  flex-shrink: 0;
+  margin: 0 24rpx 0 8rpx;
+  padding: 10rpx 22rpx;
+  border-radius: 100rpx;
+  background: var(--danger-bg);
+  color: var(--danger);
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+/* ============= 卡片汇总信息 ============= */
+.med-loc {
+  font-size: 24rpx;
+  color: var(--text-light);
+  display: inline-flex;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.restock-dot {
+  font-size: 20rpx;
+  opacity: 0.95;
+}
+
+.med-stats {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.med-stat {
+  flex: 1;
+  background: var(--surface-alt);
+  border-radius: var(--radius-sm);
+  padding: 10rpx 14rpx;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+}
+
+.med-stat-num {
+  font-size: 28rpx;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.med-stat-label {
+  font-size: 20rpx;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+/* 底部安全提示 */
+.safe-note {
+  background: linear-gradient(135deg, #fff8e1, #fdf6ec);
+  border: 1rpx solid #f4e2b8;
+  border-radius: var(--radius);
+  padding: 20rpx 24rpx;
+  font-size: 24rpx;
+  color: #8a6d3b;
+  line-height: 1.7;
+}
+
+.filter-bar {
+  padding: 24rpx 32rpx 12rpx;
+  background: var(--surface);
+  border-bottom: 1rpx solid var(--border);
+}
+
+.filter-info {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.filter-title {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.filter-sub {
+  font-size: 24rpx;
+  color: var(--text-muted);
+  padding-bottom: 6rpx;
+}
+
+.filter-scroll {
+  background: var(--surface);
+  padding: 16rpx 0 20rpx;
+  border-bottom: 1rpx solid var(--border);
+  margin-bottom: 8rpx;
+}
+
+.filter-scroll-inner {
+  white-space: nowrap;
+  padding: 0 24rpx;
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: 14rpx 28rpx;
+  background: var(--surface-alt);
+  color: var(--text-light);
+  border-radius: 100rpx;
+  font-size: 26rpx;
+  font-weight: 600;
+  margin-right: 16rpx;
+  transition: all 0.15s ease;
+}
+
+.filter-chip.active {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.filter-chip-count {
+  opacity: 0.8;
+  font-size: 22rpx;
+}
+
+/* 药品卡片 */
+.med-card {
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  padding: 28rpx 24rpx;
+  margin-bottom: 20rpx;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  box-shadow: var(--shadow-sm);
+  border: 1rpx solid var(--border);
+  transition: all 0.15s ease;
+}
+
+.med-card:active {
+  background: var(--surface-alt);
+  transform: scale(0.99);
+}
+
+.med-left {
+  flex-shrink: 0;
+}
+
+.med-icon {
+  width: 84rpx;
+  height: 84rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+}
+
+.med-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.med-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
+}
+
+.med-name {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--text);
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.med-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+  margin-bottom: 14rpx;
+}
+
+.med-for {
+  font-size: 24rpx;
+  color: var(--text-light);
+  display: inline-flex;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.med-for-icon {
+  font-size: 22rpx;
+}
+
+.med-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14rpx;
+  border-top: 1rpx dashed var(--border);
+}
+
+.med-batch {
+  font-size: 24rpx;
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+}
+
+.med-batch-icon {
+  font-size: 22rpx;
+}
+
+.med-expire {
+  font-size: 22rpx;
+  color: var(--text-muted);
+}
+
+.med-arrow {
+  flex-shrink: 0;
+  font-size: 44rpx;
+  color: var(--text-muted);
+  font-weight: 300;
+  padding-left: 8rpx;
+}
+
+/* 底部浮动添加按钮 */
+.add-floating {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: 48rpx;
+  background: linear-gradient(135deg, var(--primary), var(--primary-light));
+  color: #ffffff;
+  padding: 22rpx 56rpx;
+  border-radius: 100rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  box-shadow: 0 12rpx 32rpx rgba(46, 125, 106, 0.35);
+  z-index: 100;
+  transition: all 0.15s ease;
+}
+
+.add-floating:active {
+  transform: translateX(-50%) scale(0.96);
+}
+
+.add-floating-icon {
+  font-size: 36rpx;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.add-floating-text {
+  font-size: 30rpx;
+  font-weight: 700;
+}

@@ -1,0 +1,201 @@
+/* pages/access-logs/access-logs.wxss */
+
+.logs-hero {
+  position: relative;
+  padding: 40rpx 32rpx 90rpx;
+  color: #ffffff;
+  text-align: center;
+  overflow: hidden;
+}
+.logs-hero-bg {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, #4a235a 0%, #7d3c98 40%, #a569bd 100%);
+}
+.logs-hero-bg::after {
+  content: '';
+  position: absolute;
+  top: -80rpx; left: 50%;
+  width: 560rpx; height: 560rpx;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.logs-hero-inner { position: relative; z-index: 1; }
+.logs-hero-icon { font-size: 60rpx; margin-bottom: 14rpx; }
+.logs-hero-title {
+  font-size: 38rpx;
+  font-weight: 900;
+  margin-bottom: 8rpx;
+}
+.logs-hero-sub {
+  font-size: 24rpx;
+  opacity: 0.9;
+}
+
+/* 统计概览卡 */
+.stats-card {
+  background: #ffffff;
+  border: 1rpx solid var(--border);
+  border-radius: 24rpx;
+  padding: 22rpx 12rpx;
+  box-shadow: var(--shadow-md);
+  position: relative;
+  z-index: 2;
+  margin-bottom: 24rpx;
+}
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4rpx;
+}
+.stats-cell {
+  text-align: center;
+  padding: 10rpx 4rpx;
+}
+.stats-num {
+  font-size: 36rpx;
+  font-weight: 900;
+  line-height: 1.1;
+  margin-bottom: 4rpx;
+}
+.stats-label {
+  font-size: 22rpx;
+  color: var(--text-light);
+}
+
+/* 顶部说明 */
+.top-note {
+  background: linear-gradient(135deg, #eef5f1, #ffffff);
+  border: 1rpx solid #b4ddc7;
+  border-radius: 20rpx;
+  padding: 20rpx 22rpx;
+  display: flex;
+  gap: 16rpx;
+  align-items: flex-start;
+  margin-bottom: 24rpx;
+}
+.top-note-icon {
+  font-size: 28rpx;
+  flex-shrink: 0;
+  padding-top: 2rpx;
+}
+.top-note-text {
+  flex: 1;
+  font-size: 24rpx;
+  line-height: 1.7;
+  color: #3c6658;
+}
+
+/* 颜色图例 */
+.legend {
+  background: var(--surface);
+  border: 1rpx solid var(--border);
+  border-radius: 20rpx;
+  padding: 22rpx 24rpx;
+  margin-bottom: 24rpx;
+  box-shadow: var(--shadow-sm);
+}
+.legend-title {
+  font-size: 26rpx;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 16rpx;
+}
+.legend-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12rpx 20rpx;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  font-size: 22rpx;
+  color: var(--text-light);
+}
+.legend-dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* 日志列表 */
+.log-list {
+  background: var(--surface);
+  border: 1rpx solid var(--border);
+  border-radius: 24rpx;
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 24rpx;
+}
+.log-item {
+  display: flex;
+  align-items: center;
+  gap: 18rpx;
+  padding: 24rpx 22rpx;
+  transition: background 0.15s ease;
+}
+.log-item + .log-item {
+  border-top: 1rpx dashed var(--border);
+}
+.log-item:active { background: var(--surface-alt); }
+
+.log-tag {
+  width: 84rpx;
+  text-align: center;
+  flex-shrink: 0;
+  padding: 8rpx 4rpx;
+  border-radius: 14rpx;
+  border: 2rpx solid;
+  font-size: 22rpx;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.log-main { flex: 1; min-width: 0; }
+.log-title {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  margin-bottom: 6rpx;
+  flex-wrap: wrap;
+}
+.log-action {
+  font-size: 28rpx;
+  font-weight: 800;
+  color: var(--text);
+}
+.log-by {
+  font-size: 22rpx;
+  color: var(--text-light);
+}
+.log-target {
+  font-size: 24rpx;
+  color: #4a655e;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+}
+
+.log-time {
+  flex-shrink: 0;
+  font-size: 22rpx;
+  color: var(--text-muted);
+  text-align: right;
+  max-width: 180rpx;
+  line-height: 1.4;
+}
+
+/* 底部小提示 */
+.bottom-tip {
+  padding: 20rpx 24rpx 60rpx;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 22rpx;
+  line-height: 1.7;
+}

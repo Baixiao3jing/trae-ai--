@@ -1,0 +1,434 @@
+/* pages/elder/elder.wxss */
+/* 老人端 - 大字体、高对比度、极简布局 */
+
+.elder-page {
+  min-height: 100vh;
+  background: #fffaf0;
+  padding-bottom: 60rpx;
+}
+
+/* Hero */
+.elder-hero {
+  position: relative;
+  padding: 24rpx 32rpx 48rpx;
+  overflow: hidden;
+}
+
+.elder-hero-bg {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, #f39c12 0%, #e67e22 60%, #d35400 100%);
+}
+
+.elder-hero-bg::after {
+  content: '';
+  position: absolute;
+  top: -80rpx;
+  right: -40rpx;
+  width: 360rpx;
+  height: 360rpx;
+  background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+  border-radius: 50%;
+}
+
+.elder-hero-inner {
+  position: relative;
+  z-index: 1;
+  color: #fff;
+}
+
+.elder-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24rpx;
+}
+
+.elder-back {
+  background: rgba(255,255,255,0.22);
+  border: 2rpx solid rgba(255,255,255,0.35);
+  padding: 10rpx 22rpx;
+  border-radius: 100rpx;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.elder-call {
+  background: #fff;
+  color: #d35400;
+  padding: 12rpx 26rpx;
+  border-radius: 100rpx;
+  font-size: 30rpx;
+  font-weight: 800;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.12);
+}
+
+.elder-greet {
+  font-size: 48rpx;
+  font-weight: 900;
+  line-height: 1.25;
+  margin-bottom: 8rpx;
+  letter-spacing: 1rpx;
+}
+
+.elder-date {
+  font-size: 30rpx;
+  opacity: 0.95;
+  margin-bottom: 28rpx;
+  font-weight: 600;
+}
+
+.elder-progress {
+  background: rgba(255,255,255,0.22);
+  border: 2rpx solid rgba(255,255,255,0.32);
+  border-radius: 24rpx;
+  padding: 24rpx 28rpx;
+  display: flex;
+  align-items: center;
+  gap: 40rpx;
+  backdrop-filter: blur(6rpx);
+}
+
+.elder-progress-left,
+.elder-progress-right {
+  display: flex;
+  align-items: baseline;
+  gap: 10rpx;
+}
+
+.elder-progress-num {
+  font-size: 60rpx;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.elder-progress-num.done {
+  font-size: 48rpx;
+  color: #d5f5e3;
+}
+
+.elder-progress-label {
+  font-size: 28rpx;
+  font-weight: 600;
+  opacity: 0.95;
+}
+
+/* 容器 */
+.elder-container {
+  padding: 32rpx 32rpx 0;
+}
+
+.elder-section-title {
+  font-size: 40rpx;
+  font-weight: 900;
+  color: #5d4037;
+  margin-bottom: 24rpx;
+  padding-left: 8rpx;
+}
+
+.elder-section-title::before {
+  content: '';
+  display: inline-block;
+  width: 10rpx;
+  height: 40rpx;
+  background: linear-gradient(180deg, #f39c12, #e67e22);
+  border-radius: 5rpx;
+  margin-right: 18rpx;
+  vertical-align: -8rpx;
+}
+
+/* 药品卡片 */
+.elder-card {
+  background: #fff;
+  border-radius: 28rpx;
+  padding: 28rpx 24rpx;
+  margin-bottom: 24rpx;
+  display: flex;
+  gap: 24rpx;
+  border: 3rpx solid #ffecd2;
+  box-shadow: 0 6rpx 20rpx rgba(243, 156, 18, 0.08);
+}
+
+.elder-card.is-done {
+  opacity: 0.72;
+  background: #f6fbf6;
+  border-color: #b8dace;
+}
+
+.elder-card.is-upcoming {
+  background: #fffdf3;
+  border-color: #f4e2b8;
+}
+
+.elder-time-box {
+  width: 140rpx;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 4rpx;
+  position: relative;
+}
+
+.elder-time {
+  font-size: 44rpx;
+  font-weight: 900;
+  color: #d35400;
+  line-height: 1;
+  margin-bottom: 14rpx;
+  letter-spacing: 1rpx;
+}
+
+.elder-time-dot {
+  width: 20rpx;
+  height: 20rpx;
+  background: #f39c12;
+  border-radius: 50%;
+  box-shadow: 0 0 0 6rpx rgba(243, 156, 18, 0.2);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.25); opacity: 0.7; }
+}
+
+.elder-done-icon {
+  width: 48rpx;
+  height: 48rpx;
+  background: #27ae60;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  font-weight: 900;
+}
+
+.elder-upcoming {
+  font-size: 40rpx;
+}
+
+.elder-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.elder-med {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-bottom: 22rpx;
+}
+
+.elder-med-icon {
+  width: 88rpx;
+  height: 88rpx;
+  background: #fff5e6;
+  border-radius: 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44rpx;
+  flex-shrink: 0;
+}
+
+.elder-med-info { flex: 1; min-width: 0; }
+
+.elder-med-name {
+  font-size: 38rpx;
+  font-weight: 900;
+  color: #1f2a27;
+  line-height: 1.3;
+  margin-bottom: 8rpx;
+}
+
+.elder-med-meta {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  flex-wrap: wrap;
+}
+
+.elder-for {
+  background: #eafaf1;
+  color: #1e8449;
+  font-size: 26rpx;
+  padding: 6rpx 18rpx;
+  border-radius: 100rpx;
+  font-weight: 700;
+}
+
+.elder-dose {
+  background: #fff3e0;
+  color: #d35400;
+  font-size: 28rpx;
+  padding: 6rpx 18rpx;
+  border-radius: 100rpx;
+  font-weight: 800;
+}
+
+/* 按钮 */
+.elder-btns {
+  display: flex;
+  gap: 16rpx;
+  flex-wrap: wrap;
+}
+
+.elder-btn {
+  flex: 1;
+  min-width: 40%;
+  padding: 26rpx 16rpx;
+  text-align: center;
+  font-size: 34rpx;
+  font-weight: 900;
+  border-radius: 20rpx;
+  line-height: 1;
+  letter-spacing: 1rpx;
+  transition: all 0.15s ease;
+}
+
+.elder-btn:active { transform: scale(0.97); }
+
+.elder-btn-take {
+  background: linear-gradient(135deg, #27ae60, #2ecc71);
+  color: #fff;
+  box-shadow: 0 6rpx 16rpx rgba(39, 174, 96, 0.25);
+  flex: 1.4;
+}
+
+.elder-btn-later {
+  background: #fff;
+  color: #556b66;
+  border: 3rpx solid #d5dbd9;
+}
+
+.elder-done-tip,
+.elder-upcoming-tip {
+  flex: 1;
+  text-align: center;
+  padding: 22rpx 16rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #27ae60;
+  background: #eafaf1;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+}
+
+.elder-upcoming-tip {
+  color: #b7791f;
+  background: #fff8e1;
+}
+
+.elder-done-tip-icon,
+.elder-upcoming-tip-icon {
+  font-size: 32rpx;
+}
+
+/* 空状态 */
+.elder-empty {
+  background: #fff;
+  border-radius: 28rpx;
+  padding: 80rpx 40rpx;
+  text-align: center;
+  border: 3rpx solid #ffecd2;
+}
+
+.elder-empty-icon {
+  font-size: 120rpx;
+  margin-bottom: 20rpx;
+}
+
+.elder-empty-title {
+  font-size: 40rpx;
+  font-weight: 900;
+  color: #27ae60;
+  margin-bottom: 12rpx;
+}
+
+.elder-empty-desc {
+  font-size: 28rpx;
+  color: #556b66;
+}
+
+/* 底部提示 */
+.elder-tip-box {
+  margin-top: 36rpx;
+  background: linear-gradient(135deg, #eafaf1, #fff);
+  border: 2rpx solid #b8dace;
+  border-radius: 24rpx;
+  padding: 28rpx 28rpx;
+}
+
+.elder-tip-title {
+  font-size: 32rpx;
+  font-weight: 800;
+  color: #1e8449;
+  margin-bottom: 10rpx;
+}
+
+.elder-tip-desc {
+  font-size: 28rpx;
+  color: #556b66;
+  line-height: 1.75;
+}
+
+/* 管理员预览模式标签 */
+.elder-admin-preview {
+  margin-bottom: 16rpx;
+}
+.elder-preview-tag {
+  background: rgba(255,255,255,0.25);
+  border: 2rpx solid rgba(255,255,255,0.45);
+  padding: 8rpx 20rpx;
+  border-radius: 100rpx;
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+/* 已跳过样式 */
+.elder-card.is-skipped {
+  opacity: 0.6;
+  background: #f8f4f0;
+  border-color: #d5c3b0;
+}
+.elder-skipped-icon {
+  width: 48rpx;
+  height: 48rpx;
+  background: #7f8c8d;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 30rpx;
+  font-weight: 900;
+}
+.elder-progress-num.skip {
+  font-size: 40rpx;
+  color: #fdf2e9;
+  opacity: 0.9;
+}
+.elder-skipped-tip {
+  flex: 1;
+  text-align: center;
+  padding: 22rpx 16rpx;
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #7f8c8d;
+  background: #f4f6f6;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+}
+.elder-skipped-tip-icon {
+  font-size: 32rpx;
+}

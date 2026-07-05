@@ -1,0 +1,114 @@
+<!--pages/access-logs/access-logs.wxml-->
+<view class="page">
+  <!-- 顶部标题区 -->
+  <view class="logs-hero">
+    <view class="logs-hero-bg"></view>
+    <view class="logs-hero-inner">
+      <view class="logs-hero-icon">📋</view>
+      <view class="logs-hero-title">访问与操作记录</view>
+      <view class="logs-hero-sub">
+        共 {{stats.total}} 条记录 · 家庭药品操作透明可追溯
+      </view>
+    </view>
+  </view>
+
+  <view class="container">
+    <!-- 统计概览（展示主要操作类型） -->
+    <view class="stats-card" style="margin-top: -40rpx;">
+      <view class="stats-grid">
+        <view class="stats-cell">
+          <view class="stats-num" style="color: #27ae60;">{{stats.createCount}}</view>
+          <view class="stats-label">新增</view>
+        </view>
+        <view class="stats-cell">
+          <view class="stats-num" style="color: #2980b9;">{{stats.updateCount}}</view>
+          <view class="stats-label">修改</view>
+        </view>
+        <view class="stats-cell">
+          <view class="stats-num" style="color: #e67e22;">{{stats.confirmCount}}</view>
+          <view class="stats-label">确认</view>
+        </view>
+        <view class="stats-cell">
+          <view class="stats-num" style="color: #c0392b;">{{stats.disableCount}}</view>
+          <view class="stats-label">停用</view>
+        </view>
+        <view class="stats-cell">
+          <view class="stats-num" style="color: #8e44ad;">{{stats.exportCount}}</view>
+          <view class="stats-label">导出</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 顶部说明 -->
+    <view class="top-note">
+      <view class="top-note-icon">ℹ️</view>
+      <view class="top-note-text">
+        这里记录家庭成员对药品台账的重要操作，方便追溯和确认。点击单条记录可查看详情。
+      </view>
+    </view>
+
+    <!-- 操作类型颜色图例 -->
+    <view class="legend">
+      <view class="legend-title">操作类型图例</view>
+      <view class="legend-list">
+        <view class="legend-item">
+          <view class="legend-dot" style="background: #27ae60;"></view>
+          <text>新增药品/批次</text>
+        </view>
+        <view class="legend-item">
+          <view class="legend-dot" style="background: #2980b9;"></view>
+          <text>修改批次</text>
+        </view>
+        <view class="legend-item">
+          <view class="legend-dot" style="background: #e67e22;"></view>
+          <text>老人确认服药</text>
+        </view>
+        <view class="legend-item">
+          <view class="legend-dot" style="background: #8e44ad;"></view>
+          <text>导出数据</text>
+        </view>
+        <view class="legend-item">
+          <view class="legend-dot" style="background: #566573;"></view>
+          <text>邀请成员</text>
+        </view>
+        <view class="legend-item">
+          <view class="legend-dot" style="background: #c0392b;"></view>
+          <text>停用批次</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 日志列表 -->
+    <view class="log-list">
+      <view
+        class="log-item"
+        wx:for="{{logs}}"
+        wx:key="id"
+        data-log="{{item}}"
+        bindtap="onLogTap"
+      >
+        <view
+          class="log-tag"
+          style="background: {{item.bg}}; color: {{item.color}}; border-color: {{item.borderColor}};"
+        >
+          {{item.label}}
+        </view>
+        <view class="log-main">
+          <view class="log-title">
+            <text class="log-action">{{item.action}}</text>
+            <text class="log-by">· {{item.by}}</text>
+          </view>
+          <view class="log-target">{{item.target}}</view>
+        </view>
+        <view class="log-time">{{item.time}}</view>
+      </view>
+    </view>
+
+    <!-- 底部小提示 -->
+    <view class="bottom-tip">
+      <text>
+        🔒 所有操作记录仅本家庭管理员可查看 · 药无忧只做家庭药品库存、有效期、提醒和补货管理，不提供用药建议
+      </text>
+    </view>
+  </view>
+</view>

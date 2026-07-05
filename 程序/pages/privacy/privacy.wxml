@@ -1,0 +1,135 @@
+<!--pages/privacy/privacy.wxml-->
+<view class="page">
+  <!-- 顶部标题区 -->
+  <view class="privacy-hero">
+    <view class="privacy-hero-bg"></view>
+    <view class="privacy-hero-inner">
+      <view class="privacy-hero-icon">🔒</view>
+      <view class="privacy-hero-title">隐私与授权</view>
+      <view class="privacy-hero-sub">药无忧 · 数据最小化 · 用户可控 · 透明可信</view>
+    </view>
+  </view>
+
+  <view class="container">
+    <!-- 1. 授权状态卡片 -->
+    <view class="card auth-card" style="margin-top: -40rpx;">
+      <view class="card-title">
+        <text class="card-title-icon">✅</text>
+        当前授权状态
+      </view>
+      <view class="auth-list">
+        <view class="auth-item" wx:for="{{authList}}" wx:key="key">
+          <view class="auth-icon">{{item.icon}}</view>
+          <view class="auth-main">
+            <view class="auth-label">{{item.label}}</view>
+            <view class="auth-desc">{{item.desc}}</view>
+          </view>
+          <view class="auth-status" style="color: {{item.statusColor}};">
+            {{item.status}}
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 2. 数据最小化说明 -->
+    <view class="card info-card">
+      <view class="card-title">
+        <text class="card-title-icon">🌱</text>
+        数据最小化原则
+      </view>
+      <view class="info-text">
+        药无忧只采集家庭药品管理所需字段，如<b>药品名称、有效期、批次、剩余数量、服药确认状态</b>。
+        不采集身份证、病历、精准定位等非必要信息。
+      </view>
+    </view>
+
+    <!-- 3. OCR 图片处理说明 -->
+    <view class="card info-card">
+      <view class="card-title">
+        <text class="card-title-icon">📷</text>
+        OCR 图片处理说明
+      </view>
+      <view class="info-text">
+        药盒图片<b>仅用于识别药品名称、批号、生产日期和有效期</b>。
+        识别完成后不长期保存原图，只保留用户确认后的结构化字段，避免图片泄露风险。
+      </view>
+    </view>
+
+    <!-- 4. 家庭共享说明 -->
+    <view class="card info-card">
+      <view class="card-title">
+        <text class="card-title-icon">👪</text>
+        家庭共享与权限
+      </view>
+      <view class="info-text">
+        家庭管理员可以查看家庭药品台账、提醒状态和访问记录。
+        <b>老人端默认只读</b>，只能确认服药，不能修改、删除或新增药品信息。
+        数据仅在家庭成员之间共享，绝不对外泄露。
+      </view>
+    </view>
+
+    <!-- 5. 医疗免责说明（强化可信度） -->
+    <view class="card info-card info-warn">
+      <view class="card-title">
+        <text class="card-title-icon">💚</text>
+        关于医疗建议
+      </view>
+      <view class="info-text">
+        药无忧是家庭药品库存和提醒管理工具，<b>不提供医疗诊断与用药建议</b>。
+        用药请严格遵循医嘱或药品说明书，如出现身体不适请及时就医。
+      </view>
+    </view>
+
+    <!-- 入口：访问记录 -->
+    <view class="card nav-card" bindtap="goAccessLogs">
+      <view class="nav-icon" style="background: #f5eef9; color: #8e44ad;">📋</view>
+      <view class="nav-main">
+        <view class="nav-title">查看访问与操作记录</view>
+        <view class="nav-desc">追溯家庭成员对药品台账的重要操作</view>
+      </view>
+      <view class="nav-arrow">›</view>
+    </view>
+
+    <!-- 6. 用户可控操作 -->
+    <view class="card action-card">
+      <view class="card-title">
+        <text class="card-title-icon">🛠</text>
+        用户可控操作
+      </view>
+
+      <view class="action-item action-primary" bindtap="onExport">
+        <view class="action-icon" style="background: #eef5f1; color: #2e7d6a;">📤</view>
+        <view class="action-main">
+          <view class="action-label">导出药品台账</view>
+          <view class="action-desc">CSV 格式 · 含药品、批次、位置、数量字段</view>
+        </view>
+      </view>
+
+      <view class="action-item" bindtap="onClearPersonal">
+        <view class="action-icon" style="background: #fff8e1; color: #f39c12;">🧹</view>
+        <view class="action-main">
+          <view class="action-label">清空个人数据</view>
+          <view class="action-desc">清除本地缓存与个性化配置</view>
+        </view>
+      </view>
+
+      <view class="action-item" bindtap="onLeaveFamily">
+        <view class="action-icon" style="background: #fdecea; color: #e74c3c;">🚪</view>
+        <view class="action-main">
+          <view class="action-label">退出家庭</view>
+          <view class="action-desc">退出后需邀请码才能重新加入</view>
+        </view>
+      </view>
+
+      <view class="action-item action-danger" bindtap="onDeleteFamily">
+        <view class="action-icon" style="background: #fdecea; color: #c0392b;">🗑</view>
+        <view class="action-main">
+          <view class="action-label">删除家庭空间</view>
+          <view class="action-desc">不可恢复 · 需二次确认邀请码</view>
+        </view>
+      </view>
+    </view>
+
+    <view class="bottom-space"></view>
+  </view>
+</view>

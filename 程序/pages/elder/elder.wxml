@@ -1,0 +1,145 @@
+<!--pages/elder/elder.wxml-->
+<view class="elder-page">
+  <!-- 顶部问候 -->
+  <view class="elder-hero">
+    <view class="elder-hero-bg"></view>
+    <view class="elder-hero-inner">
+      <view class="elder-top">
+        <view class="elder-back" bindtap="goBack">‹ 返回</view>
+        <view class="elder-call" bindtap="onCallFamily">📞 联系家人</view>
+      </view>
+      <!-- 根据角色显示不同标题 -->
+      <view wx:if="{{isAdminPreview}}" class="elder-admin-preview">
+        <text class="elder-preview-tag">👀 预览模式</text>
+      </view>
+      <view class="elder-greet">{{headerTitle}}</view>
+      <view class="elder-date">{{headerSubtitle}} · {{today}}</view>
+      <view class="elder-progress">
+        <view class="elder-progress-left">
+          <text class="elder-progress-num">{{pendingCount}}</text>
+          <text class="elder-progress-label">项待服用</text>
+        </view>
+        <view class="elder-progress-right" wx:if="{{completedCount > 0}}">
+          <text class="elder-progress-num done">{{completedCount}}</text>
+          <text class="elder-progress-label">项已完成</text>
+        </view>
+        <view class="elder-progress-right" wx:if="{{skippedCount > 0}}">
+          <text class="elder-progress-num skip">{{skippedCount}}</text>
+          <text class="elder-progress-label">项已跳过</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <view class="elder-container">
+    <!-- 提醒列表 -->
+    <view class="elder-section-title">今日服药</view>
+
+    <block wx:if="{{reminders.length > 0}}">
+      <view
+        class="elder-card {{item.status === 'done' ? 'is-done' : ''}} {{item.status === 'upcoming' ? 'is-upcoming' : ''}} {{item.status === 'skipped' ? 'is-skipped' : ''}}"
+        wx:for="{{reminders}}"
+        wx:key="id"
+      >
+        <view class="elder-time-box">
+          <view class="elder-time">{{item.time}}</view>
+          <view
+            class="elder-time-dot"
+            wx:if="{{item.status === 'pending'}}"
+          ></view>
+          <view
+            wx:if="{{item.status === 'done'}}"
+            class="elder-done-icon"
+          >✓</view>
+          <view
+            wx:if="{{item.status === 'upcoming'}}"
+            class="elder-upcoming"
+          >⏰</view>
+          <view
+            wx:if="{{item.status === 'skipped'}}"
+            class="elder-skipped-icon"
+          >⊘</view>
+        </view>
+
+        <view class="elder-main">
+          <view class="elder-med">
+            <view class="elder-med-icon">{{item.icon}}</view>
+            <view class="elder-med-info">
+              <view class="elder-med-name">{{item.medicineName}}</view>
+              <view class="elder-med-meta">
+                <text class="elder-for">{{item.memberName}}</text>
+                <text class="elder-dose">{{item.dosage}}</text>
+              </view>
+            </view>
+          </view>
+
+          <!-- 按钮：待服用 -->
+          <block wx:if="{{item.status === 'pending'}}">
+            <view class="elder-btns">
+              <view
+                class="elder-btn elder-btn-take"
+                catchtap="onTake"
+                data-id="{{item.id}}"
+              >已服用</view>
+              <view
+                class="elder-btn elder-btn-later"
+                catchtap="onLater"
+                data-id="{{item.id}}"
+              >稍后提醒</view>
+            </view>
+          </block>
+
+          <!-- 按钮：稍后服用（upcoming 也给操作按钮，便于演示闭环） -->
+          <block wx:if="{{item.status === 'upcoming'}}">
+            <view class="elder-btns">
+              <view
+                class="elder-btn elder-btn-take"
+                catchtap="onTake"
+                data-id="{{item.id}}"
+              >已服用</view>
+              <view
+                class="elder-btn elder-btn-later"
+                catchtap="onLater"
+                data-id="{{item.id}}"
+              >稍后提醒</view>
+            </view>
+          </block>
+
+          <!-- 按钮：已完成 -->
+          <block wx:if="{{item.status === 'done'}}">
+            <view class="elder-btns">
+              <view class="elder-done-tip">
+                <text class="elder-done-tip-icon">✅</text>
+                您已确认服用
+              </view>
+            </view>
+          </block>
+
+          <!-- 按钮：已跳过 -->
+          <block wx:if="{{item.status === 'skipped'}}">
+            <view class="elder-btns">
+              <view class="elder-skipped-tip">
+                <text class="elder-skipped-tip-icon">⏭</text>
+                已跳过本次
+              </view>
+            </view>
+          </block>
+        </view>
+      </view>
+    </block>
+
+    <view wx:else class="elder-empty">
+      <view class="elder-empty-icon">🌿</view>
+      <view class="elder-empty-title">今日已全部完成</view>
+      <view class="elder-empty-desc">记得明天按时服用哦</view>
+    </view>
+
+    <!-- 底部说明 -->
+    <view class="elder-tip-box">
+      <view class="elder-tip-title">💚 温馨提示</view>
+      <view class="elder-tip-desc">
+        有任何问题请联系家人「小李」。药无忧只做家庭药品库存、有效期、提醒和补货管理，不提供用药建议，具体请遵医嘱。
+      </view>
+    </view>
+  </view>
+</view>

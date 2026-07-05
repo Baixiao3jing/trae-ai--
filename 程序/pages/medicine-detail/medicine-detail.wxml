@@ -1,0 +1,287 @@
+<!--pages/medicine-detail/medicine-detail.wxml  第二阶段：正式主档 + 多批次 + 汇总 + 安全提示-->
+<view class="page" wx:if="{{medicine}}">
+
+  <!-- 顶部药品卡片 -->
+  <view class="hero">
+    <view class="hero-bg"></view>
+    <view class="hero-inner">
+      <view class="hero-row">
+        <view class="med-big-icon" style="background: rgba(255,255,255,0.2); color: #fff;">
+          💊
+        </view>
+        <view class="hero-main">
+          <view class="med-name">{{medicine.name}}</view>
+          <view class="med-meta-row">
+            <text class="hero-tag" style="background: {{summary.statusColor}}33; color: #fff;">
+              {{summary.statusLabel}}
+            </text>
+            <text class="hero-tag hero-tag-alt">{{medicine.category}}</text>
+            <text wx:if="{{summary.needRestock}}" class="hero-tag hero-tag-restock">建议补货</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="hero-stats">
+        <view class="hero-stat">
+          <view class="hero-stat-num">{{summary.availableStock}}</view>
+          <view class="hero-stat-label">可用库存</view>
+        </view>
+        <view class="hero-stat">
+          <view class="hero-stat-num">{{summary.batchCount}}</view>
+          <view class="hero-stat-label">批次数量</view>
+        </view>
+        <view class="hero-stat">
+          <view class="hero-stat-num small">{{summary.nearestExpire}}</view>
+          <view class="hero-stat-label">最近有效期</view>
+        </view>
+        <view class="hero-stat">
+          <view class="hero-stat-num {{summary.needRestock ? 'num-warn' : ''}}">
+            {{summary.needRestock ? '是' : '否'}}
+          </view>
+          <view class="hero-stat-label">建议补货</view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- Tab 切换 -->
+  <view class="tabs">
+    <view
+      class="tab-item {{activeTab === item.key ? 'active' : ''}}"
+      wx:for="{{tabs}}"
+      wx:key="key"
+      data-key="{{item.key}}"
+      bindtap="onTabChange"
+    >{{item.label}}</view>
+  </view>
+
+  <view class="container">
+
+    <!-- ================= 基础信息 tab ================= -->
+    <block wx:if="{{activeTab === 'info'}}">
+      <view class="card">
+        <view class="card-title">📋 药品主档</view>
+        <view class="info-row">
+          <view class="info-label">药品名称</view>
+          <view class="info-value">{{medicine.name}}</view>
+        </view>
+        <view class="info-row">
+          <view class="info-label">通用名</view>
+          <view class="info-value">{{medicine.genericName}}</view>
+        </view>
+        <view class="info-row">
+          <view class="info-label">规格</view>
+          <view class="info-value">{{medicine.specification}}</view>
+        </view>
+        <view class="info-row">
+          <view class="info-label">生产厂家</view>
+          <view class="info-value">{{medicine.manufacturer}}</view>
+        </view>
+        <view class="info-row">
+          <view class="info-label">类别</view>
+          <view class="info-value">
+            <text class="tag tag-primary">{{medicine.category}}</text>
+          </view>
+        </view>
+        <view class="info-row">
+          <view class="info-label">商品条码</view>
+          <view class="info-value mono">{{medicine.barcode}}</view>
+        </view>
+        <view class="info-row">
+          <view class="info-label">适用成员</view>
+          <view class="info-value">
+            <text class="tag tag-accent">👤 {{forMemberText}}</text>
+          </view>
+        </view>
+        <view class="info-row">
+          <view class="info-label">存放位置</view>
+          <view class="info-value">
+            <text class="tag tag-info">📍 {{medicine.storageLocation}}</text>
+          </view>
+        </view>
+        <view class="info-row">
+          <view class="info-label">汇总状态</view>
+          <view class="info-value">
+            <text class="tag" style="background: {{summary.statusColor}}22; color: {{summary.statusColor}};">
+              {{summary.statusLabel}}
+            </text>
+          </view>
+        </view>
+      </view>
+
+      <view class="tip-box warn-tip">
+        <view class="tip-icon">💚</view>
+        <view class="tip-main">
+          <view class="tip-title">安全说明</view>
+          <view class="tip-desc">
+            药无忧仅做家庭药品库存、有效期、服用提醒与补货管理；本页面字段不构成用药建议，具体剂量、服用时间请遵医嘱。
+          </view>
+        </view>
+      </view>
+
+      <view class="btn-row">
+        <button class="btn btn-outline btn-block" bindtap="goEdit">编辑药品主档</button>
+        <button class="btn btn-primary btn-block mt-16" bindtap="goSetReminder">配置用药提醒</button>
+      </view>
+    </block>
+
+    <!-- ================= 批次库存 tab ================= -->
+    <block wx:if="{{activeTab === 'batch'}}">
+      <view class="card card-header-card">
+        <view class="card-header">
+          <view>
+            <view class="card-title" style="margin-bottom: 4rpx;">批次库存（{{batches.length}}）</view>
+            <view class="text-sm text-muted">
+              排序：未过期批次在前，越早过期越靠前；已过期靠后；停用批次最后。
+            </view>
+          </view>
+          <view class="mini-btn" bindtap="goAddBatch">+ 新增批次</view>
+        </view>
+      </view>
+
+      <block wx:if="{{batches.length > 0}}">
+        <view
+          class="batch-card {{item.disabled ? 'is-disabled' : ''}}"
+          wx:for="{{batches}}"
+          wx:key="id"
+          data-batch="{{item}}"
+          style="border-left: 6rpx solid {{item.batchBorderColor}};"
+        >
+          <!-- 批次头部 -->
+          <view class="batch-top">
+            <view class="batch-title">
+              批次号 <text class="batch-no">{{item.batchNo}}</text>
+            </view>
+            <view class="row" style="gap: 12rpx;">
+              <text
+                class="tag"
+                style="background: {{item.statusColor}}22; color: {{item.statusColor}};"
+              >{{item.statusLabel}}</text>
+              <text
+                wx:if="{{item.disabled}}"
+                class="tag tag-muted"
+              >已停用</text>
+            </view>
+          </view>
+
+          <!-- 批次信息 2x2 网格 -->
+          <view class="batch-grid">
+            <view class="batch-cell">
+              <view class="batch-k">生产日期</view>
+              <view class="batch-v">{{item.productionDate}}</view>
+            </view>
+            <view class="batch-cell">
+              <view class="batch-k">有效期至</view>
+              <view class="batch-v {{item.status === 'expired' ? 'text-danger' : (item.status === 'nearExpire' ? 'text-warning' : '')}}">
+                {{item.expireDate}}
+                <text class="text-sm text-muted">（{{item.expireDaysText}}）</text>
+              </view>
+            </view>
+            <view class="batch-cell">
+              <view class="batch-k">总数 / 剩余</view>
+              <view class="batch-v text-primary">
+                {{item.remainingQuantity}} / {{item.totalQuantity}} {{item.unit}}
+              </view>
+            </view>
+            <view class="batch-cell">
+              <view class="batch-k">存放位置</view>
+              <view class="batch-v">{{item.storageLocation}}</view>
+            </view>
+          </view>
+
+          <!-- 剩余数量进度条 -->
+          <view class="batch-progress-wrap">
+            <view class="batch-progress-label">
+              <text>剩余占比</text>
+              <text class="text-muted text-sm">{{item.remainPercent}}%</text>
+            </view>
+            <view class="batch-progress">
+              <view
+                class="batch-progress-bar"
+                style="width: {{item.remainPercent}}%;
+                       background: {{item.remainPercent < 30 ? '#e74c3c' : '#2e7d6a'}};"
+              ></view>
+            </view>
+          </view>
+
+          <!-- 识别来源 + 置信度 + 日期来源标注 -->
+          <view class="batch-meta-card">
+            <view class="batch-meta-row">
+              <view class="batch-meta-item">
+                <text class="batch-meta-k">📥 数据来源：</text>
+                <text class="tag tag-info">{{item.sourceLabel}}</text>
+              </view>
+              <view class="batch-meta-item">
+                <text class="batch-meta-k">🎯 识别置信度：</text>
+                <text class="batch-meta-v {{item.confidencePercent < 90 ? 'text-warning' : 'text-success'}}">
+                  {{item.confidencePercent}}%
+                </text>
+              </view>
+            </view>
+            <view class="batch-source-note">
+              🗒️ 日期来源标注：{{item.imageSourceNote}}
+            </view>
+          </view>
+
+          <!-- 批次操作按钮（模拟） -->
+          <view class="batch-op-row">
+            <view class="batch-op batch-op-edit" data-batch="{{item}}" bindtap="goEditBatch">编辑批次</view>
+            <view class="batch-op batch-op-disable" data-batch="{{item}}" bindtap="goDisableBatch">
+              {{item.disabled ? '重新启用' : '停用批次'}}
+            </view>
+          </view>
+        </view>
+      </block>
+
+      <view wx:else class="empty">
+        <view class="empty-icon">📦</view>
+        <view>暂无批次数据</view>
+      </view>
+
+      <!-- 批次使用提示文案（用户要求明确显示） -->
+      <view class="tip-box main-tip mt-16">
+        <view class="tip-icon">📌</view>
+        <view class="tip-main">
+          <view class="tip-title">使用规则</view>
+          <view class="tip-desc">
+            建议优先使用临期批次。系统默认先使用有效期更近的批次；已过期和已停用批次会被排除在可用库存与补货计算之外。
+          </view>
+        </view>
+      </view>
+
+      <view class="tip-box warn-tip mt-16">
+        <view class="tip-icon">💚</view>
+        <view class="tip-main">
+          <view class="tip-title">安全说明</view>
+          <view class="tip-desc">
+            系统只做库存与提醒管理，不提供用药建议。过期药品请及时清理丢弃，是否可服用请遵医嘱。
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <!-- ================= 用药计划 tab（占位） ================= -->
+    <block wx:if="{{activeTab === 'plan'}}">
+      <view class="card">
+        <view class="card-title">用药计划</view>
+        <view class="placeholder">
+          <view class="placeholder-icon">⏰</view>
+          <view class="placeholder-title">用药提醒（待完善）</view>
+          <view class="placeholder-desc">
+            后续阶段将在此配置：使用者、每次用量、每日次数、提醒时间、是否需要子女监督与二次确认等。
+          </view>
+          <button class="btn btn-primary mt-24" bindtap="goSetReminder">去配置用药计划</button>
+        </view>
+      </view>
+
+      <view class="tip-box warn-tip mt-16">
+        <view class="tip-icon">💚</view>
+        <view class="tip-main">
+          <view class="tip-title">安全说明</view>
+          <view class="tip-desc">药无忧不推荐剂量、不判断疗效，具体用法用量请在医生或药师指导下使用。</view>
+        </view>
+      </view>
+    </block>
+
+  </view>
+</view>

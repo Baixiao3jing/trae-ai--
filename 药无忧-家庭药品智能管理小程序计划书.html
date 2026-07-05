@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>药无忧 · 家庭药品智能管理小程序计划书（修订版 v2）</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --primary: #2e7d6a;
+    --primary-light: #4db69d;
+    --primary-dark: #1f5a4d;
+    --accent: #e07a5f;
+    --accent-light: #f4a896;
+    --bg: #f7faf8;
+    --surface: #ffffff;
+    --surface-alt: #f0f6f3;
+    --text: #1f2a27;
+    --text-light: #556b66;
+    --text-muted: #8fa09b;
+    --border: #e0ebe6;
+    --success: #43a07a;
+    --warning: #e8a33d;
+    --danger: #d94f4f;
+    --shadow-sm: 0 2px 8px rgba(46, 125, 106, 0.08);
+    --shadow-md: 0 4px 20px rgba(46, 125, 106, 0.12);
+    --shadow-lg: 0 12px 48px rgba(46, 125, 106, 0.16);
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.75;
+    font-size: 16px;
+  }
+
+  /* Navigation */
+  .nav-wrapper {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    transition: all 0.3s ease;
+  }
+
+  .nav-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    color: var(--primary-dark);
+    font-size: 17px;
+  }
+
+  .nav-logo-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 20px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 4px;
+    list-style: none;
+    overflow-x: auto;
+    max-width: 70%;
+    scrollbar-width: none;
+  }
+
+  .nav-links::-webkit-scrollbar { display: none; }
+
+  .nav-links a {
+    display: inline-block;
+    padding: 8px 14px;
+    color: var(--text-light);
+    text-decoration: none;
+    font-size: 14px;
+    border-radius: var(--radius-sm);
+    white-space: nowrap;
+    transition: all 0.2s ease;
+  }
+
+  .nav-links a:hover,
+  .nav-links a.active {
+    color: var(--primary);
+    background: var(--surface-alt);
+  }
+
+  /* Hero Section */
+  .hero {
+    background: linear-gradient(135deg, #1f5a4d 0%, #2e7d6a 40%, #4db69d 100%);
+    color: white;
+    padding: 80px 24px 100px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    left: -5%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(224,122,95,0.15) 0%, transparent 70%);
+    border-radius: 50%;
+  }
+
+  .hero-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-badge {
+    display: inline-block;
+    padding: 6px 16px;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 500;
+    margin-bottom: 24px;
+    backdrop-filter: blur(10px);
+  }
+
+  .hero-title {
+    font-size: clamp(32px, 5vw, 52px);
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 16px;
+    letter-spacing: -0.5px;
+  }
+
+  .hero-subtitle {
+    font-size: clamp(17px, 2.2vw, 22px);
+    font-weight: 500;
+    opacity: 0.92;
+    margin-bottom: 36px;
+    max-width: 680px;
+  }
+
+  .hero-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .hero-stat-card {
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    backdrop-filter: blur(8px);
+  }
+
+  .hero-stat-num {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--accent-light);
+    margin-bottom: 4px;
+  }
+
+  .hero-stat-label {
+    font-size: 14px;
+    opacity: 0.9;
+  }
+
+  /* Content Container */
+  .container {
+    max-width: 960px;
+    margin: -50px auto 0;
+    padding: 0 24px 80px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* Section */
+  .section {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-md);
+    padding: 40px 44px;
+    margin-bottom: 28px;
+    border: 1px solid var(--border);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+
+  .section:hover {
+    box-shadow: var(--shadow-lg);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--surface-alt);
+  }
+
+  .section-icon {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    color: white;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .section-title-group {
+    flex: 1;
+  }
+
+  .section-num {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary);
+    background: var(--surface-alt);
+    padding: 3px 10px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+  }
+
+  .section-title {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.3;
+  }
+
+  .section-desc {
+    color: var(--text-light);
+    font-size: 15.5px;
+    margin-bottom: 20px;
+    padding-left: 4px;
+  }
+
+  /* Highlight Box (single cell table) */
+  .highlight-box {
+    background: linear-gradient(135deg, var(--surface-alt), #ffffff);
+    border-left: 4px solid var(--primary);
+    padding: 20px 24px;
+    border-radius: var(--radius-sm);
+    margin: 20px 0;
+    font-size: 15px;
+    color: var(--text);
+    line-height: 1.8;
+  }
+
+  .highlight-box.warning {
+    border-left-color: var(--warning);
+    background: linear-gradient(135deg, #fdf6ec, #ffffff);
+  }
+
+  .highlight-box.danger {
+    border-left-color: var(--danger);
+    background: linear-gradient(135deg, #fdecec, #ffffff);
+  }
+
+  .highlight-box.accent {
+    border-left-color: var(--accent);
+    background: linear-gradient(135deg, #fdf0ed, #ffffff);
+  }
+
+  /* Lists */
+  .feature-list,
+  .step-list,
+  .bullet-list {
+    list-style: none;
+    margin: 20px 0;
+  }
+
+  .feature-list li {
+    position: relative;
+    padding: 14px 16px 14px 52px;
+    background: var(--surface-alt);
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+    transition: all 0.2s ease;
+  }
+
+  .feature-list li:hover {
+    background: #e7f2ee;
+    transform: translateX(4px);
+  }
+
+  .feature-list li::before {
+    content: '✓';
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 26px;
+    height: 26px;
+    background: var(--primary);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+  }
+
+  .step-list li {
+    position: relative;
+    padding: 14px 16px 14px 60px;
+    background: var(--surface-alt);
+    border-radius: var(--radius-sm);
+    margin-bottom: 12px;
+    counter-increment: step-counter;
+    transition: all 0.2s ease;
+  }
+
+  .step-list {
+    counter-reset: step-counter;
+  }
+
+  .step-list li:hover {
+    background: #e7f2ee;
+    transform: translateX(4px);
+  }
+
+  .step-list li::before {
+    content: counter(step-counter);
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 30px;
+    background: linear-gradient(135deg, var(--primary), var(--primary-light));
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .bullet-list li {
+    position: relative;
+    padding: 8px 12px 8px 32px;
+    margin-bottom: 8px;
+    color: var(--text);
+  }
+
+  .bullet-list li::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 16px;
+    width: 10px;
+    height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(224, 122, 95, 0.15);
+  }
+
+  /* Tables */
+  .data-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 20px 0;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border);
+  }
+
+  .data-table thead th {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    padding: 14px 18px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 14.5px;
+    letter-spacing: 0.2px;
+  }
+
+  .data-table tbody td {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14.5px;
+    color: var(--text);
+    background: var(--surface);
+    vertical-align: top;
+  }
+
+  .data-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .data-table tbody tr:nth-child(even) td {
+    background: var(--surface-alt);
+  }
+
+  .data-table tbody tr:hover td {
+    background: #e7f2ee;
+  }
+
+  /* Tag / Chip */
+  .tag {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 2px;
+  }
+
+  .tag-primary { background: var(--surface-alt); color: var(--primary); }
+  .tag-accent { background: #fdf0ed; color: var(--accent); }
+  .tag-success { background: #e8f5ee; color: var(--success); }
+  .tag-warning { background: #fdf6ec; color: var(--warning); }
+  .tag-danger { background: #fdecec; color: var(--danger); }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 40px 24px;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  .footer-divider {
+    width: 60px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    margin: 0 auto 16px;
+    border-radius: 3px;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .nav-inner { padding: 0 16px; }
+    .nav-links { display: none; }
+    .hero { padding: 60px 16px 80px; }
+    .container { padding: 0 16px 60px; margin-top: -40px; }
+    .section { padding: 28px 22px; margin-bottom: 20px; }
+    .section-header { flex-direction: column; gap: 12px; padding-bottom: 16px; margin-bottom: 20px; }
+    .section-title { font-size: 22px; }
+    .hero-stat-num { font-size: 24px; }
+    .data-table { font-size: 13px; }
+    .data-table thead th,
+    .data-table tbody td { padding: 10px 12px; }
+  }
+
+  /* Scroll to top button */
+  .scroll-top {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 46px;
+    height: 46px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: var(--shadow-md);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    z-index: 99;
+    transition: all 0.3s ease;
+  }
+
+  .scroll-top:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+  }
+
+  .scroll-top.visible {
+    display: flex;
+  }
+
+  /* Inline code/highlight */
+  strong {
+    color: var(--primary-dark);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav-wrapper">
+  <div class="nav-inner">
+    <div class="nav-logo">
+      <div class="nav-logo-icon">💊</div>
+      <span>药无忧 · 计划书</span>
+    </div>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#bg">项目背景</a></li>
+      <li><a href="#position">产品定位</a></li>
+      <li><a href="#family">家庭空间</a></li>
+      <li><a href="#ocr">药品识别</a></li>
+      <li><a href="#batch">批次管理</a></li>
+      <li><a href="#ai">AI预填</a></li>
+      <li><a href="#risk">风险控制</a></li>
+      <li><a href="#remind">提醒策略</a></li>
+      <li><a href="#privacy">隐私安全</a></li>
+      <li><a href="#mvp">MVP范围</a></li>
+      <li><a href="#tech">技术方案</a></li>
+      <li><a href="#plan">开发计划</a></li>
+      <li><a href="#summary">总结</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-badge">📋 修订版 v2 · 2026 参赛计划书</div>
+    <h1 class="hero-title">药无忧 · 家庭药品<br>智能管理小程序计划书</h1>
+    <p class="hero-subtitle">年轻人主导的家庭药品库存管家 —— 子女创建家庭、邀请父母加入，通过条码 + OCR 辅助录入药品，按类别和批次管理父母家中的药品库存、有效期、剩余量和补货提醒。</p>
+    <div class="hero-stats">
+      <div class="hero-stat-card">
+        <div class="hero-stat-num">13</div>
+        <div class="hero-stat-label">核心章节 · 完整方案</div>
+      </div>
+      <div class="hero-stat-card">
+        <div class="hero-stat-num">3+1</div>
+        <div class="hero-stat-label">管理模型：主档 / 批次 / 用药</div>
+      </div>
+      <div class="hero-stat-card">
+        <div class="hero-stat-num">5</div>
+        <div class="hero-stat-label">开发阶段 · 可交付里程碑</div>
+      </div>
+      <div class="hero-stat-card">
+        <div class="hero-stat-num">0</div>
+        <div class="hero-stat-label">医疗诊断承诺 · 安全边界</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Main Content -->
+<div class="container">
+
+  <!-- 一、项目背景与核心痛点 -->
+  <section class="section" id="bg">
+    <div class="section-header">
+      <div class="section-icon">🎯</div>
+      <div class="section-title-group">
+        <span class="section-num">CHAPTER 01</span>
+        <h2 class="section-title">项目背景与核心痛点</h2>
+      </div>
+    </div>
+    <p class="section-desc">老年慢病家庭中，药品通常由父母日常服用、年轻子女阶段性购买、补充和关心。但真实家庭里，药品经常分散在抽屉、药箱、床头柜中，同一种药还可能有不同购买时间、不同批次和不同有效期。</p>
+    <ul class="feature-list">
+      <li>年轻人想关注父母健康，但缺少一个<strong>低打扰、可持续、能看见药品状态</strong>的工具。</li>
+      <li>父母家中药品种类多、批次多、有效期不一致，容易出现<strong>过期、重复购买或临近断药</strong>。</li>
+      <li>老人不适合承担复杂录入和维护工作，<strong>核心管理动作应由年轻人完成</strong>。</li>
+      <li>同一个药品可能有多个药盒，每盒批号、有效期、剩余数量不同，<strong>必须按批次规划，而不能只按药名合并</strong>。</li>
+    </ul>
+  </section>
+
+  <!-- 二、产品定位与使用主体 -->
+  <section class="section" id="position">
+    <div class="section-header">
+      <div class="section-icon">🎯</div>
+      <div class="section-title-group">
+        <span class="section-num">CHAPTER 02</span>
+        <h2 class="section-title">产品定位与使用主体</h2>
+      </div>
+    </div>
+    <div class="highlight-box accent">
+      <strong>一句话定位：</strong>药无忧不是普通吃药提醒工具，而是面向年轻家庭成员的"父母家庭药品库存管家"：年轻人创建家庭、邀请老人加入，通过条码 + OCR 辅助录入药品，按类别和批次管理父母家中的药品库存、有效期、剩余量和补货提醒。
+    </div>
+    <p class="section-desc" style="margin-top: 20px;">产品定位：一款以年轻人/子女为主要使用者的家庭药品库存与提醒管理微信小程序。年轻人创建家庭空间、邀请父母加入、负责药品上传和分类维护；老人端只负责接收提醒、查看大字信息和点击"已服用"。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 22%;">角色</th>
+          <th style="width: 28%;">定位</th>
+          <th>主要操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>年轻人/子女管理员</strong></td>
+          <td>产品主要使用者和家庭空间管理员。</td>
+          <td>创建家庭、邀请老人、扫码/拍照上传药品、分类管理、设置提醒、查看确认状态。</td>
+        </tr>
+        <tr>
+          <td><strong>老人/使用者</strong></td>
+          <td>被关怀对象，轻量参与。</td>
+          <td>接收提醒、查看大字版用药信息、点击"已服用"或"稍后提醒"。</td>
+        </tr>
+        <tr>
+          <td><strong>其他家庭成员</strong></td>
+          <td>辅助关注者。</td>
+          <td>在授权后查看临期、过期、库存不足等关键状态。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="highlight-box">
+      <strong>核心转向：</strong>产品不再假设老人是主要操作者，而是让年轻人主动承担家庭药品管理员角色。这样更符合真实家庭分工，也能强化"子女关注父母健康状况"的项目价值。
+    </div>
+  </section>
+
+  <!-- 三、家庭空间与分类管理 -->
+  <section class="section" id="family">
+    <div class="section-header">
+      <div class="section-icon">👨‍👩‍👧‍👦</div>
+      <div class="section-title-group">
+        <span class="section-num">CHAPTER 03</span>
+        <h2 class="section-title">家庭空间与分类管理</h2>
+      </div>
+    </div>
+    <ol class="step-list">
+      <li>年轻人通过微信登录创建家庭空间，成为默认管理员。</li>
+      <li>管理员通过微信分享链接或邀请码邀请父母加入家庭。</li>
+      <li>老人加入时看到大字版授权说明，确认后进入家庭空间。</li>
+      <li>管理员可按家庭成员、药品类别、存放位置、药品状态进行分门别类管理。</li>
+    </ol>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 24px;">
+      <div style="background: var(--surface-alt); border-radius: var(--radius-sm); padding: 18px; border-top: 3px solid var(--primary);">
+        <div style="font-weight: 700; color: var(--primary); margin-bottom: 8px;">👥 按成员分类</div>
+        <div style="font-size: 14px; color: var(--text-light);">父亲常用药、母亲常用药、全家备用药</div>
+      </div>
+      <div style="background: var(--surface-alt); border-radius: var(--radius-sm); padding: 18px; border-top: 3px solid var(--accent);">
+        <div style="font-weight: 700; color: var(--accent); margin-bottom: 8px;">💊 按用途分类</div>
+        <div style="font-size: 14px; color: var(--text-light);">降压、降糖、心脑血管、感冒发烧、肠胃、外用、急救备用</div>
+      </div>
+      <div style="background: var(--surface-alt); border-radius: var(--radius-sm); padding: 18px; border-top: 3px solid var(--warning);">
+        <div style="font-weight: 700; color: var(--warning); margin-bottom: 8px;">📊 按状态分类</div>
+        <div style="font-size: 14px; color: var(--text-light);">正常、临期、已过期、库存不足、待确认</div>
+      </div>
+      <div style="background: var(--surface-alt); border-radius: var(--radius-sm); padding: 18px; border-top: 3px solid var(--success);">
+        <div style="font-weight: 700; color: var(--success); margin-bottom: 8px;">📍 按位置分类</div>
+        <div style="font-size: 14px; color: var(--text-light);">客厅药箱、卧室床头、冰箱、外出药包</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 四、药品识别：条码 + OCR 双通道 -->
+  <section class="section" id="ocr">
+    <div class="section-header">
+      <div class="section-icon">📷</div>
+      <div class="section-title-group">
+        <span class="section-num">CHAPTER 04</span>
+        <h2 class="section-title">药品识别：条码 + OCR 双通道</h2>
+      </div>
+    </div>
+    <p class="section-desc">药品包装上通常存在条码或追溯码。相比纯 OCR，条码扫描可以减少药品名称和规格识别错误，因此应作为优先识别入口。但条码通常更适合识别"这是什么商品/药品规格"，未必总能直接拿到该盒药的批号和有效期，所以仍需要 OCR 识别日期和批次。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 22%;">识别方式</th>
+          <th style="width: 30%;">适合识别</th>
+          <th>局限与处理</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="tag tag-primary">条码</span> 条码/追溯码扫描</td>
+          <td>药品名称、规格、厂家、包装单位等相对稳定信息。</td>
+          <td>可能需要接入合规数据源；不一定包含该盒具体有效期，仍需 OCR 或人工确认。</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-accent">OCR</span> OCR 拍照识别</td>
+          <td>生产日期、有效期、批号、包装文字、存放提示。</td>
+          <td>容易受角度、反光、遮挡影响，必须显示置信度并人工确认。</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-success">兜底</span> 手动录入</td>
+          <td>识别失败、包装破损、条码不可用、小众药品。</td>
+          <td>作为兜底流程，保证用户不会被 AI 卡住。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="highlight-box">
+      <strong>识别策略：</strong>条码负责提高"药品是谁"的准确性，OCR 负责补充"这一盒是什么批次、什么时候过期"。二者结合比单纯 OCR 更稳，也更适合比赛展示。
+    </div>
+
+    <ol class="step-list" style="margin-top: 24px;">
+      <li><strong>优先扫条码：</strong>系统尝试识别药品基础信息，减少手动输入。</li>
+      <li><strong>再拍有效期区域：</strong>OCR 提取生产日期、有效期、批号等批次字段。</li>
+      <li><strong>进入确认页：</strong>展示条码识别结果、OCR 识别结果、置信度和日期来源。</li>
+      <li><strong>用户确认后入库：</strong>未确认前只保存为草稿，不生成正式药品档案。</li>
+    </ol>
+  </section>
+
+  <!-- 五、同药多批次与不同效期管理 -->
+  <section class="section" id="batch">
+    <div class="section-header">
+      <div class="section-icon">📦</div>
+      <div class="section-title-group">
+        <span class="section-num">CHAPTER 05</span>
+        <h2 class="section-title">同药多批次与不同效期管理</h2>
+      </div>
+    </div>
+    <p class="section-desc">同一种药不能简单合并为一个库存数字。家庭中常见情况是同一药品有多个药盒，每盒购买时间、批号、有效期和剩余数量不同。如果只按药名合并，会掩盖临期药盒，造成误服或浪费。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 20%;">管理层级</th>
+          <th style="width: 42%;">字段</th>
+          <th>用途</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>药品主档</strong></td>
+          <td>药品名、通用名、规格、厂家、类别、适用家庭成员。</td>
+          <td>用于识别"这是什么药"，方便分类和搜索。</td>
+        </tr>
+        <tr>
+          <td><strong>批次库存</strong></td>
+          <td>批号、有效期、生产日期、数量、剩余量、存放位置、录入时间。</td>
+          <td>用于判断"这一盒还能不能吃、应该先吃哪一盒"。</td>
+        </tr>
+        <tr>
+          <td><strong>用药计划</strong></td>
+          <td>使用者、每次用量、每日次数、提醒时间、是否需要子女监督。</td>
+          <td>用于计算消耗、提醒服药和推算补货日期。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <ul class="feature-list">
+      <li><strong>同药不同批次分开展示：</strong>例如"硝苯地平控释片"下挂 2026-09 到期和 2027-03 到期两个批次。</li>
+      <li><strong>默认先用临期批次：</strong>系统在提醒和库存扣减时优先推荐使用有效期更近的药盒。</li>
+      <li><strong>批次级预警：</strong>临期和过期提醒应精确到某一盒/某一批，而不是只提醒药名。</li>
+      <li><strong>补货计算按总可用库存汇总，</strong>但排除已过期和用户标记停用的批次。</li>
+      <li><strong>新增同药时自动归入主档，</strong>新增一个批次库存，而不是重复创建完全独立药品。</li>
+    </ul>
+  </section>
+
+  <!-- 六、AI 预填 + 用户确认机制 -->
+  <section class="section" id="ai">
+    <div class="section-header">
+      <div class="section-icon">🤖</div>
+      <div class="section-title-group">
+        <span class="section-num">CHAPTER 06</span>
+        <h2 class="section-title">AI 预填 + 用户确认机制</h2>
+      </div>
+    </div>
+    <ol class="step-list">
+      <li>识别后展示<strong>字段级置信度</strong>，低置信度字段用醒目标记提示用户核对。</li>
+      <li><strong>日期来源标注：</strong>例如"有效期来自包装侧面第 2 行文字"。</li>
+      <li><strong>关键字段必须确认：</strong>药品名、规格、有效期、数量、使用者、每日用量。</li>
+      <li>无法识别时提供<strong>重新拍照、手动录入、保存草稿</strong>三种兜底。</li>
+      <li>用户点击确认后，系统才写入<strong>正式家庭药品台账</strong>。</li>
+    </ol>
+  </section>
+
+  <!-- 七、产品边界与医疗风险控制 -->
+  <section class="section" id="risk">
+    <div class="section-header">
+      <div class="section-icon">⚖️</div>
+      <div class="section-title-group">
+        <span class="section-num">CHAPTER 07</span>
+        <h2 class="section-title">产品边界与医疗风险控制</h2>
+      </div>
+    </div>
+    <div class="highlight-box danger">
+      <strong>医疗边界声明：</strong>本产品不判断药品疗效、不推荐用药、不替代医生诊疗建议，不对处方、剂量调整或治疗方案作医学决策；系统只做家庭药品库存、有效期、服用提醒和补货管理。
+    </div>
+    <ul class="feature-list" style="margin-top: 24px;">
+      <li>说明书解析只做通俗化摘要，并提示以药品说明书和医生建议为准。</li>
+      <li>用药冲突检测<strong>不作为初赛核心功能</strong>，避免无可靠数据源时产生错误医学建议。</li>
+      <li>剂量和频次由年轻人根据医生处方或药盒说明手动录入，系统只做提醒和库存消耗计算。</li>
+    </ul>
+  </section>
+
+  <!-- 八、提醒策略：以子女端监督为核心 -->
+  <section class="section" id="remind">
+    <div class="section-header">
+      <div class="section-icon">🔔</div>
+      <div class="section-title-group">
+        <span class="section-num">CHAPTER 08</span>
+        <h2 class="section-title">提醒策略：以子女端监督为核心</h2>
+      </div>
+    </div>
+    <p class="section-desc">小程序不应把"绝对准时提醒"作为唯一承诺。更稳的价值是让子女持续看见父母药品状态，并在老人未确认、药品临期、库存不足时主动介入。</p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; margin: 24px 0;">
+      <div style="background: linear-gradient(135deg, #fff8f5, #ffffff); border: 1px solid #f4d7cb; border-radius: var(--radius-sm); padding: 22px;">
+        <div style="font-size: 30px; margin-bottom: 10px;">👴</div>
+        <div style="font-weight: 700; font-size: 17px; margin-bottom: 8px; color: var(--primary-dark);">老人端</div>
+        <div style="font-size: 14.5px; color: var(--text-light); line-height: 1.7;">大字提醒、少按钮、可点击"已服用"。</div>
+      </div>
+      <div style="background: linear-gradient(135deg, #f0faf5, #ffffff); border: 1px solid #c8e5d7; border-radius: var(--radius-sm); padding: 22px;">
+        <div style="font-size: 30px; margin-bottom: 10px;">👨‍💼</div>
+        <div style="font-weight: 700; font-size: 17px; margin-bottom: 8px; color: var(--primary-dark);">子女端</div>
+        <div style="font-size: 14.5px; color: var(--text-light); line-height: 1.7;">查看今日确认状态、未确认提醒、临期/过期/库存不足提醒。</div>
+      </div>
+      <div style="background: linear-gradient(135deg, #f5f8ff, #ffffff); border: 1px solid #cfd9f5; border-radius: var(--radius-sm); padding: 22px;">
+        <div style="font-size: 30px; margin-bottom: 10px;">🔗</div>
+        <div style="font-weight: 700; font-size: 17px; margin-bottom: 8px; color: var(--primary-dark);">多通道组合</div>
+        <div style="font-size: 14.5px; color: var(--text-light); line-height: 1.7;">小程序内提醒 + 微信订阅消息 + 子女监督 + 日历提醒引导。</div>
+      </div>
+      <div style="background: linear-gradient(135deg, #fffaee, #ffffff); border: 1px solid #f4e2b8; border-radius: var(--radius-sm); padding: 22px;">
+        <div style="font-size: 30px; margin-bottom: 10px;">🎬</div>
+        <div style="font-weight: 700; font-size: 17px; margin-bottom: 8px; color: var(--primary-dark);">演示重点</div>
+        <div style="font-size: 14.5px; color: var(--text-light); line-height: 1.7;">老人未确认后，子女端收到二次提醒并可主动联系。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 九、隐私、安全与授权设计 -->
+  <section class="section" id="privacy">
+    <div class="section-header">
+      <div class="section-icon">🔒</div>
+      <div class="section-title-group">
+        <span class="section-num">CHAPTER 09</span>
+        <h2 class="section-title">隐私、安全与授权设计</h2>
+      </div>
+    </div>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 20%;">设计点</th>
+          <th style="width: 42%;">建议做法</th>
+          <th>价值</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>单独授权</strong></td>
+          <td>创建家庭、邀请老人、上传药盒图片、开启共享时分别说明用途。</td>
+          <td>让用户知道采集什么、为什么采集。</td>
+        </tr>
+        <tr>
+          <td><strong>老人同意</strong></td>
+          <td>老人加入家庭时用大字说明谁能看到药品台账、如何退出。</td>
+          <td>符合适老化与知情同意。</td>
+        </tr>
+        <tr>
+          <td><strong>最小化采集</strong></td>
+          <td>只采集药品管理必要字段，不采集身份证、定位、病历等。</td>
+          <td>降低隐私和合规压力。</td>
+        </tr>
+        <tr>
+          <td><strong>OCR 图片删除</strong></td>
+          <td>药盒图片仅临时识别，完成后删除，保留处理时间或哈希记录。</td>
+          <td>保护药品与健康信息隐私。</td>
+        </tr>
+        <tr>
+          <td><strong>访问日志</strong></td>
+          <td>记录谁新增、修改、删除、导出药品数据。</td>
+          <td>家庭内部可追溯，减少误操作争议。</td>
+        </tr>
+        <tr>
+          <td><strong>数据导出/删除</strong></td>
+          <td>支持导出台账、退出家庭、删除家庭空间和清空个人数据。</td>
+          <td>用户对数据有控制权。</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 十、初赛 MVP 范围 -->
+  <section class="section" id="mvp">
+    <div class="section-header">
+      <div class="section-icon">🚀</div>
+      <div class="section-title-group">
+        <span class="section-num">CHAPTER 10</span>
+        <h2 class="section-title">初赛 MVP 范围</h2>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin: 10px 0 24px;">
+      <div style="border: 1px solid #c8e5d7; border-radius: var(--radius-sm); padding: 20px; background: linear-gradient(135deg, #f0faf5, #fff);">
+        <div style="display: inline-block; padding: 4px 12px; background: var(--success); color: white; border-radius: 6px; font-size: 12px; font-weight: 700; margin-bottom: 12px;">✅ 必须完成</div>
+        <div style="font-size: 14.5px; color: var(--text); line-height: 1.75;">年轻人创建家庭、邀请老人、条码/OCR 辅助录入、确认页、药品分类、批次库存、有效期预警、药量推算、老人确认、子女端查看状态。</div>
+      </div>
+      <div style="border: 1px solid #b9d9e7; border-radius: var(--radius-sm); padding: 20px; background: linear-gradient(135deg, #eff6fa, #fff);">
+        <div style="display: inline-block; padding: 4px 12px; background: #3d8ab7; color: white; border-radius: 6px; font-size: 12px; font-weight: 700; margin-bottom: 12px;">⭐ 优先展示</div>
+        <div style="font-size: 14.5px; color: var(--text); line-height: 1.75;">同一药品录入两个不同批次，系统分别显示不同有效期，并优先提醒临期批次。</div>
+      </div>
+      <div style="border: 1px solid #f4e2b8; border-radius: var(--radius-sm); padding: 20px; background: linear-gradient(135deg, #fffaee, #fff);">
+        <div style="display: inline-block; padding: 4px 12px; background: var(--warning); color: white; border-radius: 6px; font-size: 12px; font-weight: 700; margin-bottom: 12px;">🔧 可以简化</div>
+        <div style="font-size: 14.5px; color: var(--text); line-height: 1.75;">真实条码数据源可先用模拟库或手动映射演示，但界面和流程按真实条码方案设计。</div>
+      </div>
+      <div style="border: 1px solid #e7c8c8; border-radius: var(--radius-sm); padding: 20px; background: linear-gradient(135deg, #fdf0f0, #fff);">
+        <div style="display: inline-block; padding: 4px 12px; background: var(--danger); color: white; border-radius: 6px; font-size: 12px; font-weight: 700; margin-bottom: 12px;">🚫 暂不做</div>
+        <div style="font-size: 14.5px; color: var(--text); line-height: 1.75;">线上购药商城、自动推荐药物、自动调整剂量、无数据源支撑的用药冲突判断。</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 十一、技术实现方案 -->
+  <section class="section" id="tech">
+    <div class="section-header">
+      <div class="section-icon">⚙️</div>
+      <div class="section-title-group">
+        <span class="section-num">CHAPTER 11</span>
+        <h2 class="section-title">技术实现方案</h2>
+      </div>
+    </div>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 20%;">模块</th>
+          <th style="width: 38%;">实现方式</th>
+          <th>说明</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>前端</strong></td>
+          <td>微信小程序 / uni-app</td>
+          <td>子女端偏管理后台，老人端偏大字轻操作。</td>
+        </tr>
+        <tr>
+          <td><strong>条码识别</strong></td>
+          <td>小程序扫码能力 + 云端轻量映射库</td>
+          <td>初赛可用常见药模拟库展示流程。</td>
+        </tr>
+        <tr>
+          <td><strong>OCR 识别</strong></td>
+          <td>TRAE OCR + 大模型字段解析</td>
+          <td>识别日期、批号、有效期，并展示置信度。</td>
+        </tr>
+        <tr>
+          <td><strong>数据模型</strong></td>
+          <td>药品主档 + 批次库存 + 用药计划</td>
+          <td>支持同药不同批次、不同效期。</td>
+        </tr>
+        <tr>
+          <td><strong>后端</strong></td>
+          <td>微信云开发</td>
+          <td>家庭组、权限、台账、提醒记录、访问日志。</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 十二、开发计划 -->
+  <section class="section" id="plan">
+    <div class="section-header">
+      <div class="section-icon">📅</div>
+      <div class="section-title-group">
+        <span class="section-num">CHAPTER 12</span>
+        <h2 class="section-title">开发计划</h2>
+      </div>
+    </div>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th style="width: 14%;">阶段</th>
+          <th style="width: 50%;">任务</th>
+          <th>交付结果</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="tag tag-primary">阶段 1</span></td>
+          <td>搭建年轻人管理员端：家庭创建、邀请老人、药品分类。</td>
+          <td>家庭空间基础可用。</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-accent">阶段 2</span></td>
+          <td>实现条码扫描和 OCR 拍照识别，完成 AI 预填确认页。</td>
+          <td>录入闭环可演示。</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-success">阶段 3</span></td>
+          <td>建立药品主档 + 批次库存模型，支持同药多批次和不同效期。</td>
+          <td>库存管理逻辑成型。</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-warning">阶段 4</span></td>
+          <td>完成有效期预警、剩余量计算、补货提醒和老人端确认。</td>
+          <td>家庭协同闭环完成。</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-danger">阶段 5</span></td>
+          <td>补隐私授权、演示数据、申报材料和视频。</td>
+          <td>参赛版本可提交。</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 十三、总结 -->
+  <section class="section" id="summary">
+    <div class="section-header">
+      <div class="section-icon">📝</div>
+      <div class="section-title-group">
+        <span class="section-num">CHAPTER 13</span>
+        <h2 class="section-title">总结</h2>
+      </div>
+    </div>
+    <div class="highlight-box accent" style="font-size: 16px; line-height: 2; padding: 28px 30px;">
+      《药无忧》以年轻子女为主要使用者，让他们成为父母家庭药品的管理员。产品通过条码识别提高药品基础信息准确性，通过 OCR 补充批号和有效期，通过"药品主档 + 批次库存"解决同药不同批次、不同效期的问题，再用老人端轻量确认和子女端监督形成家庭关怀闭环。<br><br>
+      项目不做医疗诊断和用药推荐，而是专注家庭药品库存、有效期、提醒和补货管理，既更安全，也更贴近真实家庭使用场景。
+    </div>
+  </section>
+
+</div>
+
+<!-- Footer -->
+<footer class="footer">
+  <div class="footer-divider"></div>
+  <p style="font-weight: 600; color: var(--text-light); margin-bottom: 6px;">💊 药无忧 · 家庭药品智能管理小程序</p>
+  <p>修订版 v2 计划书 · 2026</p>
+</footer>
+
+<!-- Scroll to Top -->
+<button class="scroll-top" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+
+<script>
+  // Scroll to top visibility
+  window.addEventListener('scroll', function() {
+    const btn = document.getElementById('scrollTopBtn');
+    if (window.scrollY > 600) {
+      btn.classList.add('visible');
+    } else {
+      btn.classList.remove('visible');
+    }
+
+    // Active nav link
+    const sections = document.querySelectorAll('.section');
+    const navLinks = document.querySelectorAll('.nav-links a');
+    let current = '';
+    sections.forEach(section => {
+      const sectionTop = section.offsetTop - 120;
+      if (window.scrollY >= sectionTop) {
+        current = section.getAttribute('id');
+      }
+    });
+    navLinks.forEach(link => {
+      link.classList.remove('active');
+      if (link.getAttribute('href') === '#' + current) {
+        link.classList.add('active');
+      }
+    });
+  });
+</script>
+
+</body>
+</html>

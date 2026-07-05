@@ -1,0 +1,49 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/medicines/medicines",
+    "pages/settings/settings",
+    "pages/family/family",
+    "pages/add-medicine/add-medicine",
+    "pages/medicine-detail/medicine-detail",
+    "pages/elder/elder",
+    "pages/privacy/privacy",
+    "pages/access-logs/access-logs"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#ffffff",
+    "navigationBarTitleText": "药无忧",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f7faf8"
+  },
+  "tabBar": {
+    "color": "#8fa09b",
+    "selectedColor": "#2e7d6a",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "assets/tab/home.png",
+        "selectedIconPath": "assets/tab/home-active.png"
+      },
+      {
+        "pagePath": "pages/medicines/medicines",
+        "text": "药箱",
+        "iconPath": "assets/tab/box.png",
+        "selectedIconPath": "assets/tab/box-active.png"
+      },
+      {
+        "pagePath": "pages/settings/settings",
+        "text": "我的",
+        "iconPath": "assets/tab/me.png",
+        "selectedIconPath": "assets/tab/me-active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

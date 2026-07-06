@@ -11,7 +11,7 @@
 .family-bg {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(135deg, #1f5a4d 0%, #2e7d6a 50%, #4db69d 100%);
+  background: var(--gradient-brand);
 }
 
 .family-bg::after {
@@ -20,7 +20,7 @@
   top: -80rpx; left: 50%;
   width: 500rpx; height: 500rpx;
   transform: translateX(-50%);
-  background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
+  background: var(--gradient-hero-glow);
   border-radius: 50%;
 }
 
@@ -93,9 +93,9 @@
 /* 邀请卡片 */
 .invite-card {
   margin-top: -40rpx;
-  background: linear-gradient(135deg, #ffffff, #f7faf8);
+  background: var(--gradient-brand-soft);
   border: 2rpx dashed var(--primary-light);
-  border-radius: 24rpx;
+  border-radius: var(--radius-card);
   padding: 28rpx 24rpx;
   display: flex;
   align-items: center;
@@ -115,7 +115,7 @@
   height: 80rpx;
   background: var(--primary);
   color: #fff;
-  border-radius: 20rpx;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -148,7 +148,7 @@
 /* 成员列表 */
 .member-list {
   background: var(--surface);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   border: 1rpx solid var(--border);
   box-shadow: var(--shadow-sm);
   overflow: hidden;
@@ -213,9 +213,9 @@
 /* 提示框 */
 .tip-box {
   margin-top: 28rpx;
-  background: linear-gradient(135deg, #fff8e1, #fdf6ec);
+  background: var(--gradient-warning);
   border: 1rpx solid #f4e2b8;
-  border-radius: 20rpx;
+  border-radius: var(--radius-card);
   padding: 24rpx;
   display: flex;
   gap: 18rpx;
@@ -267,7 +267,7 @@
   position: fixed;
   left: 0; right: 0; bottom: 0;
   background: #ffffff;
-  border-radius: 32rpx 32rpx 0 0;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   padding: 20rpx 32rpx calc(40rpx + env(safe-area-inset-bottom));
   z-index: 101;
   transform: translateY(110%);
@@ -305,7 +305,7 @@
   gap: 20rpx;
   padding: 28rpx 24rpx;
   background: var(--surface-alt);
-  border-radius: 20rpx;
+  border-radius: var(--radius-card);
   margin-bottom: 16rpx;
   transition: background 0.15s ease;
 }
@@ -370,7 +370,7 @@
   background: var(--surface-alt);
   color: var(--text-light);
   font-size: 30rpx;
-  border-radius: 20rpx;
+  border-radius: var(--radius-card);
   font-weight: 600;
 }
 
@@ -380,7 +380,7 @@
 .overview-card {
   background: #ffffff;
   border: 1rpx solid var(--border);
-  border-radius: 24rpx;
+  border-radius: var(--radius-card);
   padding: 28rpx 24rpx;
   box-shadow: var(--shadow-md);
   position: relative;
@@ -441,7 +441,7 @@
 .overview-code-val {
   color: var(--primary);
   letter-spacing: 1rpx;
-  background: #e7f2ee;
+  background: var(--primary-bg);
   padding: 4rpx 14rpx;
   border-radius: 8rpx;
 }
@@ -528,7 +528,7 @@
   gap: 18rpx;
   background: var(--surface);
   border: 1rpx solid var(--border);
-  border-radius: 20rpx;
+  border-radius: var(--radius-card);
   padding: 22rpx 20rpx;
   box-shadow: var(--shadow-sm);
   transition: transform 0.12s ease;
@@ -565,7 +565,7 @@
 
 /* 第五阶段：老人加入预览按钮样式 */
 .invite-way-elder {
-  background: linear-gradient(135deg, #eafaf1, #ffffff);
+  background: var(--gradient-success);
   border: 2rpx dashed #a9dfbf;
 }
 
@@ -579,13 +579,13 @@
   max-height: 88vh;
   overflow-y: auto;
   background: #ffffff;
-  border-radius: 32rpx;
+  border-radius: var(--radius-xl);
   padding: 36rpx 32rpx calc(32rpx + env(safe-area-inset-bottom));
   z-index: 102;
   opacity: 0;
   pointer-events: none;
   transition: all 0.25s ease;
-  box-shadow: 0 20rpx 60rpx rgba(0,0,0,0.25);
+  box-shadow: var(--shadow-sheet);
 }
 .elder-agree.show {
   opacity: 1;
@@ -607,9 +607,9 @@
   color: var(--primary-dark);
 }
 .elder-agree-card {
-  background: linear-gradient(135deg, #f7faf8, #ffffff);
+  background: var(--gradient-brand-soft);
   border: 1rpx solid #d5e5dd;
-  border-radius: 24rpx;
+  border-radius: var(--radius-card);
   padding: 20rpx 20rpx;
   margin-bottom: 24rpx;
 }
@@ -648,7 +648,7 @@
   font-weight: 600;
 }
 .elder-agree-tip {
-  background: linear-gradient(135deg, #eafaf1, #fdfefd);
+  background: var(--gradient-success);
   border: 1rpx solid #b4ddc7;
   border-radius: 18rpx;
   padding: 18rpx 20rpx;
@@ -680,11 +680,97 @@
 }
 .elder-agree-btn:active { transform: scale(0.98); }
 .elder-agree-btn-primary {
-  background: linear-gradient(135deg, #2e7d6a, #4db69d);
+  background: var(--gradient-primary-action);
   color: #ffffff;
   box-shadow: 0 8rpx 22rpx rgba(46, 125, 106, 0.3);
 }
 .elder-agree-btn-default {
   background: var(--surface-alt);
   color: var(--text-light);
+}
+
+/* ---------- 第六阶段：创建家庭表单 ---------- */
+.family-inner-create .family-name {
+  font-size: 40rpx;
+}
+.family-inner-create .family-info {
+  background: rgba(255, 255, 255, 0.14);
+  padding: 12rpx 28rpx;
+  font-size: 26rpx;
+}
+.btn-create {
+  margin-top: 12rpx;
+  background: var(--gradient-primary-action);
+  color: #fff;
+  text-align: center;
+  padding: 26rpx 0;
+  border-radius: 100rpx;
+  font-size: 32rpx;
+  font-weight: 800;
+  box-shadow: 0 10rpx 24rpx rgba(46, 125, 106, 0.25);
+  transition: all 0.15s ease;
+}
+.btn-create:active {
+  transform: scale(0.985);
+}
+.btn-create-sm {
+  margin-top: 20rpx;
+  padding: 20rpx 0;
+  font-size: 28rpx;
+  border-radius: 100rpx;
+  text-align: center;
+  color: #fff;
+  background: var(--gradient-primary-action);
+  font-weight: 800;
+}
+/* ---------- 第六阶段：模拟家人加入列表 ---------- */
+.invite-way-mock {
+  background: linear-gradient(135deg, #fff4e5, #fffaf2);
+  border: 2rpx dashed #f4c99d;
+}
+.mock-pick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+  margin-bottom: 8rpx;
+}
+.mock-pick-item {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  padding: 24rpx 20rpx;
+  background: var(--surface-alt);
+  border-radius: 18rpx;
+}
+.mock-pick-item:active { background: #e0ebe6; }
+.mock-pick-avatar {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38rpx;
+  flex-shrink: 0;
+}
+.mock-pick-dad { background: #fff3e0; }
+.mock-pick-mom { background: #fde8ec; }
+.mock-pick-other { background: #eaf2fd; }
+.mock-pick-main { flex: 1; min-width: 0; }
+.mock-pick-name {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4rpx;
+}
+.mock-pick-role {
+  font-size: 22rpx;
+  color: var(--text-light);
+  line-height: 1.5;
+}
+.other-member-block {
+  margin-top: 22rpx;
+  padding: 20rpx 20rpx 8rpx;
+  background: var(--surface-alt);
+  border-radius: 18rpx;
 }

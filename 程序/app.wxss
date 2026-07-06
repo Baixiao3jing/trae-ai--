@@ -1,6 +1,54 @@
 /**app.wxss - 药无忧全局样式**/
 
 page {
+  /* Brand palette */
+  --color-brand-900: #17483e;
+  --color-brand-800: #1f5a4d;
+  --color-brand-700: #2e7d6a;
+  --color-brand-600: #3f9b86;
+  --color-brand-500: #4db69d;
+  --color-brand-100: #e7f2ee;
+  --color-brand-50: #f2faf7;
+
+  /* Semantic palette */
+  --color-info-700: #2878b8;
+  --color-info-500: #3498db;
+  --color-info-100: #e8f4fd;
+  --color-success-700: #1e8449;
+  --color-success-500: #27ae60;
+  --color-success-100: #eafaf1;
+  --color-warning-800: #8a5a15;
+  --color-warning-700: #b7791f;
+  --color-warning-500: #f39c12;
+  --color-warning-100: #fff8e1;
+  --color-danger-700: #c0392b;
+  --color-danger-500: #e74c3c;
+  --color-danger-100: #fdecea;
+  --color-family-500: #e07a5f;
+  --color-family-300: #f4a896;
+  --color-family-100: #fdf0ed;
+  --color-privacy-700: #6f3c8f;
+  --color-privacy-500: #8e5bb0;
+  --color-privacy-100: #f1e9f7;
+  --color-elder-700: #d35400;
+  --color-elder-600: #e67e22;
+  --color-elder-500: #f39c12;
+  --color-elder-100: #fff3e0;
+
+  /* Neutral palette */
+  --color-bg: #f7faf8;
+  --color-bg-warm: #fffaf0;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f0f6f3;
+  --color-surface-soft: #f8fbfa;
+  --color-text: #1f2a27;
+  --color-text-soft: #556b66;
+  --color-text-muted: #8fa09b;
+  --color-border: #e0ebe6;
+  --color-border-strong: #c9ded4;
+  --color-white: #ffffff;
+
+  /* Backward-compatible aliases */
   --primary: #2e7d6a;
   --primary-light: #4db69d;
   --primary-dark: #1f5a4d;
@@ -9,6 +57,7 @@ page {
   --accent-light: #f4a896;
   --accent-bg: #fdf0ed;
   --bg: #f7faf8;
+  --page-bg: #f7faf8;
   --surface: #ffffff;
   --surface-alt: #f0f6f3;
   --text: #1f2a27;
@@ -23,16 +72,77 @@ page {
   --danger-bg: #fdecea;
   --info: #3498db;
   --info-bg: #e8f4fd;
-  --radius: 16rpx;
-  --radius-lg: 24rpx;
+
+  /* Typography */
+  --font-size-caption: 22rpx;
+  --font-size-helper: 24rpx;
+  --font-size-body: 28rpx;
+  --font-size-body-lg: 30rpx;
+  --font-size-section: 34rpx;
+  --font-size-page-title: 40rpx;
+  --font-size-hero-title: 44rpx;
+  --font-size-number: 44rpx;
+  --font-size-elder-body: 30rpx;
+  --font-size-elder-title: 40rpx;
+  --font-size-elder-hero: 48rpx;
+  --font-size-elder-number: 60rpx;
+  --font-weight-regular: 400;
+  --font-weight-medium: 600;
+  --font-weight-bold: 700;
+  --font-weight-heavy: 800;
+  --font-weight-black: 900;
+
+  /* Radius */
+  --radius-xs: 8rpx;
   --radius-sm: 10rpx;
+  --radius-md: 16rpx;
+  --radius: 16rpx;
+  --radius-card: 24rpx;
+  --radius-lg: 24rpx;
+  --radius-xl: 32rpx;
+  --radius-pill: 100rpx;
+
+  /* Spacing */
+  --space-1: 4rpx;
+  --space-2: 8rpx;
+  --space-3: 12rpx;
+  --space-4: 16rpx;
+  --space-5: 20rpx;
+  --space-6: 24rpx;
+  --space-7: 28rpx;
+  --space-8: 32rpx;
+  --space-10: 40rpx;
+  --space-12: 48rpx;
+  --page-x: 32rpx;
+  --card-pad-x: 24rpx;
+  --card-pad-y: 28rpx;
+  --section-gap: 32rpx;
+  --list-gap: 20rpx;
+
+  /* Elevation */
   --shadow-sm: 0 4rpx 16rpx rgba(46, 125, 106, 0.08);
   --shadow-md: 0 8rpx 32rpx rgba(46, 125, 106, 0.12);
+  --shadow-lg: 0 16rpx 48rpx rgba(31, 90, 77, 0.16);
+  --shadow-float: 0 12rpx 32rpx rgba(46, 125, 106, 0.28);
+  --shadow-sheet: 0 20rpx 60rpx rgba(0, 0, 0, 0.22);
+
+  /* Gradients */
+  --gradient-brand: linear-gradient(135deg, var(--color-brand-800) 0%, var(--color-brand-700) 48%, var(--color-brand-500) 100%);
+  --gradient-brand-soft: linear-gradient(135deg, var(--color-brand-50), var(--color-white));
+  --gradient-primary-action: linear-gradient(135deg, var(--color-brand-700), var(--color-brand-500));
+  --gradient-info: linear-gradient(135deg, #5dade2, var(--color-info-500));
+  --gradient-family: linear-gradient(135deg, var(--color-family-300), var(--color-family-500));
+  --gradient-warning: linear-gradient(135deg, var(--color-warning-100), #fffaf0);
+  --gradient-danger: linear-gradient(135deg, var(--color-danger-100), var(--color-white));
+  --gradient-success: linear-gradient(135deg, var(--color-success-100), var(--color-white));
+  --gradient-elder: linear-gradient(135deg, var(--color-elder-500) 0%, var(--color-elder-600) 60%, var(--color-elder-700) 100%);
+  --gradient-privacy: linear-gradient(135deg, #4a235a 0%, var(--color-privacy-700) 44%, #a569bd 100%);
+  --gradient-hero-glow: radial-gradient(circle, rgba(255,255,255,0.14) 0%, transparent 70%);
 
   background: var(--bg);
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
-  font-size: 28rpx;
+  font-size: var(--font-size-body);
   line-height: 1.6;
 }
 
@@ -43,72 +153,85 @@ page {
 }
 
 .container {
-  padding: 24rpx 32rpx;
+  padding: var(--space-6) var(--page-x);
   box-sizing: border-box;
 }
 
 /* 卡片通用 */
-.card {
+.card,
+.app-card {
   background: var(--surface);
-  border-radius: var(--radius-lg);
-  padding: 32rpx;
+  border-radius: var(--radius-card);
+  padding: var(--space-8);
   box-shadow: var(--shadow-sm);
-  margin-bottom: 24rpx;
+  margin-bottom: var(--space-6);
   border: 1rpx solid var(--border);
 }
 
 /* 标题 */
-.section-title {
-  font-size: 34rpx;
-  font-weight: 700;
+.section-title,
+.app-section-title {
+  font-size: var(--font-size-section);
+  font-weight: var(--font-weight-bold);
   color: var(--text);
-  margin-bottom: 24rpx;
+  margin-bottom: var(--space-6);
   display: flex;
   align-items: center;
 }
 
-.section-title::before {
+.section-title::before,
+.app-section-title::before {
   content: '';
   display: inline-block;
   width: 8rpx;
   height: 32rpx;
-  background: var(--primary);
+  background: var(--gradient-primary-action);
   border-radius: 4rpx;
-  margin-right: 16rpx;
+  margin-right: var(--space-4);
 }
 
 /* 按钮 */
-.btn {
+.btn,
+.app-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-height: 76rpx;
   padding: 20rpx 40rpx;
-  border-radius: var(--radius);
-  font-size: 30rpx;
-  font-weight: 600;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-body-lg);
+  font-weight: var(--font-weight-bold);
   line-height: 1;
   border: none;
   transition: all 0.2s ease;
   box-sizing: border-box;
 }
 
-.btn-primary {
-  background: var(--primary);
+.btn-primary,
+.app-btn-primary {
+  background: var(--gradient-primary-action);
   color: #ffffff;
+  box-shadow: 0 8rpx 22rpx rgba(46, 125, 106, 0.22);
 }
 
-.btn-primary:active {
+.btn-primary:active,
+.app-btn-primary:active {
   background: var(--primary-dark);
+  transform: scale(0.98);
 }
 
-.btn-outline {
+.btn-outline,
+.app-btn-secondary {
   background: #ffffff;
   color: var(--primary);
-  border: 2rpx solid var(--primary);
+  border: 2rpx solid var(--color-border-strong);
+  box-shadow: none;
 }
 
-.btn-outline:active {
+.btn-outline:active,
+.app-btn-secondary:active {
   background: var(--primary-bg);
+  transform: scale(0.98);
 }
 
 .btn-accent {
@@ -116,19 +239,44 @@ page {
   color: #ffffff;
 }
 
-.btn-block {
+.app-btn-danger {
+  background: var(--danger);
+  color: #ffffff;
+}
+
+.app-btn-ghost {
+  background: var(--surface-alt);
+  color: var(--text-light);
+  border: 1rpx solid var(--border);
+}
+
+.btn-block,
+.app-btn-block {
   width: 100%;
   display: flex;
 }
 
 /* 标签 */
-.tag {
+.tag,
+.app-chip {
   display: inline-block;
   padding: 6rpx 18rpx;
-  border-radius: 100rpx;
-  font-size: 22rpx;
-  font-weight: 600;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
   line-height: 1.5;
+}
+
+.app-chip {
+  background: var(--surface-alt);
+  color: var(--text-light);
+  border: 1rpx solid transparent;
+}
+
+.app-chip-active {
+  background: var(--primary);
+  color: #ffffff;
+  box-shadow: 0 4rpx 14rpx rgba(46, 125, 106, 0.24);
 }
 
 .tag-primary { background: var(--primary-bg); color: var(--primary); }
@@ -138,6 +286,139 @@ page {
 .tag-info    { background: var(--info-bg);    color: var(--info); }
 .tag-accent  { background: var(--accent-bg);  color: var(--accent); }
 .tag-muted   { background: #f0f2f1;           color: var(--text-muted); }
+
+/* 统一表单 */
+.app-form-card {
+  background: var(--surface);
+  border: 1rpx solid var(--border);
+  border-radius: var(--radius-card);
+  padding: var(--card-pad-y) var(--card-pad-x);
+  box-shadow: var(--shadow-sm);
+  box-sizing: border-box;
+}
+
+.app-form-field {
+  margin-bottom: var(--space-6);
+}
+
+.app-form-field:last-child {
+  margin-bottom: 0;
+}
+
+.app-form-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-bottom: var(--space-3);
+  color: var(--text);
+  font-size: 26rpx;
+  font-weight: var(--font-weight-bold);
+  line-height: 1.4;
+}
+
+.app-form-required {
+  color: var(--danger);
+  font-size: 26rpx;
+  font-weight: var(--font-weight-heavy);
+}
+
+.app-form-input,
+.app-form-picker,
+.app-form-textarea {
+  width: 100%;
+  background: var(--surface-alt);
+  border: 2rpx solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: var(--font-size-body);
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.app-form-input {
+  height: 88rpx;
+  line-height: 88rpx;
+  padding: 0 22rpx;
+}
+
+.app-form-picker {
+  min-height: 88rpx;
+  padding: 0 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.app-form-textarea {
+  min-height: 168rpx;
+  padding: 20rpx 22rpx;
+  line-height: 1.55;
+}
+
+.app-form-input:focus,
+.app-form-textarea:focus {
+  background: #ffffff;
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 4rpx rgba(77, 182, 157, 0.08);
+}
+
+.app-form-field.has-error .app-form-input,
+.app-form-field.has-error .app-form-picker,
+.app-form-field.has-error .app-form-textarea {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+
+.app-form-helper {
+  margin-top: var(--space-3);
+  color: var(--text-light);
+  font-size: var(--font-size-helper);
+  line-height: 1.7;
+}
+
+.app-form-error {
+  display: block;
+  margin-top: var(--space-2);
+  padding-left: var(--space-2);
+  color: var(--danger);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.5;
+}
+
+.app-option-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14rpx;
+}
+
+.app-option-chip {
+  min-height: 68rpx;
+  max-width: 100%;
+  padding: 0 22rpx;
+  border-radius: var(--radius-pill);
+  border: 2rpx solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text);
+  font-size: 26rpx;
+  font-weight: var(--font-weight-bold);
+  line-height: 68rpx;
+  box-sizing: border-box;
+  word-break: break-all;
+}
+
+.app-option-chip-active {
+  border-color: var(--primary);
+  background: var(--primary-bg);
+  color: var(--primary);
+  box-shadow: 0 4rpx 12rpx rgba(46, 125, 106, 0.12);
+}
+
+.app-option-chip-other {
+  background: #fffdf6;
+  border-style: dashed;
+  color: var(--color-warning-800);
+}
 
 /* 通用 flex */
 .row {
@@ -193,14 +474,83 @@ page {
 }
 
 /* 空状态 */
-.empty {
+.empty,
+.app-empty {
   padding: 80rpx 32rpx;
   text-align: center;
   color: var(--text-muted);
 }
 
-.empty-icon {
+.empty-icon,
+.app-empty-icon {
   font-size: 120rpx;
   margin-bottom: 24rpx;
   opacity: 0.5;
+}
+
+.app-empty-title {
+  font-size: var(--font-size-section);
+  font-weight: var(--font-weight-heavy);
+  color: var(--text);
+  margin-bottom: var(--space-3);
+}
+
+.app-empty-desc {
+  font-size: var(--font-size-helper);
+  color: var(--text-light);
+  line-height: 1.7;
+}
+
+/* 统一提示框 */
+.app-notice,
+.app-notice-success,
+.app-notice-warning,
+.app-notice-danger,
+.app-notice-info {
+  border-radius: 20rpx;
+  padding: 22rpx 24rpx;
+  display: flex;
+  gap: 18rpx;
+  align-items: flex-start;
+  border: 1rpx solid var(--border);
+}
+
+.app-notice-success {
+  background: var(--gradient-success);
+  border-color: #b4ddc7;
+  color: #3c6658;
+}
+
+.app-notice-warning {
+  background: var(--gradient-warning);
+  border-color: #f0d49c;
+  color: var(--color-warning-800);
+}
+
+.app-notice-danger {
+  background: var(--gradient-danger);
+  border-color: #f5b7b1;
+  color: var(--color-danger-700);
+}
+
+.app-notice-info {
+  background: linear-gradient(135deg, var(--color-info-100), #ffffff);
+  border-color: #b8d8ef;
+  color: #2e668c;
+}
+
+/* 统一 Hero 底色，可由页面原有结构引用 */
+.app-hero {
+  background: var(--gradient-brand);
+  color: #ffffff;
+}
+
+.app-hero-warm {
+  background: var(--gradient-elder);
+  color: #ffffff;
+}
+
+.app-hero-privacy {
+  background: var(--gradient-privacy);
+  color: #ffffff;
 }

@@ -1,36 +1,26 @@
 // pages/add-medicine/add-medicine.js
-// 药无忧第三阶段：条码 + OCR + 人工确认录入流程
-const {
-  members,
-  mockBarcodeLibrary,
-  mockOcrResults,
-  lookupBarcode,
-  getOcrScenario,
-  matchExistingMedicineByForm,
-  statusLabel,
-  statusColor,
-  daysBetween,
-  PICKER_OPTIONS
-} = require('../../utils/mockData.js');
+// 真实录入流程：选择方式 -> 统一表单 -> 保存成功
+const appStore = require('../../utils/appStore.js');
+const { PICKER_OPTIONS } = require('../../utils/mockData.js');
 
-// ---------- 辅助小工具 ----------
-function pct(n) { return Math.round((Number(n) || 0) * 100); }
-function toNumber(v, def = 0) {
+const lookupBarcode = appStore.lookupBarcode;
+const matchExistingMedicineByForm = appStore.matchExistingMedicineByForm;
+const statusLabel = appStore.statusLabel;
+const statusColor = appStore.statusColor;
+const daysBetween = appStore.daysBetween;
+
+function toNumber(v, def) {
+  const fallback = def === undefined ? 0 : def;
+  if (v === '' || v === null || v === undefined) return fallback;
   const n = Number(v);
-  return Number.isFinite(n) ? n : def;
+  return Number.isFinite(n) ? n : fallback;
 }
 
-// 基于批次字段计算状态（独立于正式工具函数，专门用于确认页预览）
-function _computePreviewBatchStatus({ expireDate, totalQuantity, remainingQuantity }) {
-  const expDays = daysBetween(expireDate);
-  const remain = toNumber(remainingQuantity, -1);
-  if (expDays < 0) return 'expired';
-  if (expDays <= 30) return 'nearExpire';
-  if (remain >= 0 && remain < 10) return 'lowStock';
-  return 'normal';
+function percent(n) {
+  return Math.round((Number(n) || 0) * 100);
 }
 
-function _emptyMedicineForm() {
+function emptyMedicine() {
   return {
     name: '',
     genericName: '',
@@ -41,11 +31,14 @@ function _emptyMedicineForm() {
     barcode: '',
     targetMemberIds: [],
     targetMemberLabel: '',
-    storageLocation: ''
+    customTargetMemberName: '',
+    storageLocation: '',
+    coverImage: '',
+    coverSource: 'none'
   };
 }
 
-function _emptyBatchForm() {
+function emptyBatch() {
   return {
     batchNo: '',
     productionDate: '',
@@ -57,620 +50,736 @@ function _emptyBatchForm() {
   };
 }
 
-// 生成一组合理的手动录入默认值（让比赛演示时"手动录入"也能快速到下一步）
-function _defaultManualMedicine() {
+function emptyDraft() {
   return {
-    name: '苯磺酸氨氯地平片',
-    genericName: '苯磺酸氨氯地平片',
-    shortName: '降压药',
-    category: '降压',
-    specification: '5mg × 7片/盒',
-    manufacturer: '辉瑞制药有限公司',
-    barcode: '',
-    targetMemberIds: ['U002'],
-    targetMemberLabel: '爸爸',
-    storageLocation: '客厅药箱'
+    medicine: emptyMedicine(),
+    batch: emptyBatch()
   };
 }
 
-function _defaultManualBatch() {
-  return {
-    batchNo: 'MANUAL-2026-001',
-    productionDate: '2026-03-10',
-    expireDate: '2028-03-09',
-    totalQuantity: 28,
-    remainingQuantity: 28,
-    unit: '片',
-    imageSourceNote: '用户手动录入，无 OCR 识别图像记录'
-  };
+function batchStatus(batch) {
+  const expDays = daysBetween(batch.expireDate);
+  const remain = toNumber(batch.remainingQuantity, -1);
+  if (expDays < 0) return 'expired';
+  if (expDays <= 30) return 'nearExpire';
+  if (remain >= 0 && remain < 10) return 'lowStock';
+  return 'normal';
 }
 
 Page({
   data: {
-    // ---- step 控制 ----
-    step: 'choose', // choose | barcode | ocr | confirm | success
-    stepIndex: 0,   // 进度条步数（0~4）
-    stepper: [
-      { idx: 1, title: '识别基础', active: false, done: false },
-      { idx: 2, title: '识别批次', active: false, done: false },
-      { idx: 3, title: '人工确认', active: false, done: false },
-      { idx: 4, title: '完成', active: false, done: false }
-    ],
-
-    // ---- 入口模式 ----
-    entryMode: '', // 'barcode' | 'ocr-only' | 'manual'
-
-    // ---- 模拟条码库 ----
-    barcodeLibrary: [],
-    selectedBarcodeIdx: 0,
-    barcodeRecognized: false,
-    barcodeResult: null,
-
-    // ---- OCR Scenario ----
-    ocrScenarios: [],   // [{key,label,desc,icon}]
-    selectedOcrKey: 'high',
-    ocrRecognized: false,
-    ocrResult: null,    // {success, confidence, batch, errorMessage?}
-
-    // ---- 表单（可编辑） ----
-    form: {
-      medicine: _emptyMedicineForm(),
-      batch: _emptyBatchForm()
-    },
+    step: 'choose',
+    noFamily: false,
+    draft: emptyDraft(),
     sources: {
-      medicineSource: null,   // 'barcode' | 'ocr' | 'manual' | null
-      batchSource: null,      // 'ocr' | 'manual' | null
+      medicineSource: 'manual',
+      batchSource: 'manual',
       medicineConfidence: 1,
       batchConfidence: 1
     },
+    assistNotice: null,
+    matchPreview: null,
+    savePreview: null,
+    errorMap: {},
 
-    // ---- picker 元数据 ----
-    memberPickerOptions: PICKER_OPTIONS.members.map(m => m.label),
+    membersPickerList: [],
+    memberPickerOptions: [],
     memberPickerIdx: 0,
+    memberLabels: {},
     categoryOptions: PICKER_OPTIONS.categories,
     categoryPickerIdx: 0,
     locationOptions: PICKER_OPTIONS.locations,
     locationPickerIdx: 0,
+    categoryCustomVisible: false,
+    memberCustomVisible: false,
+    locationCustomVisible: false,
 
-    // ---- 确认页 & 预览 ----
-    lowMedicineConfidence: false,  // 条码识别置信度低（虽然条码默认 0.95+ 不触发，但保留）
-    lowBatchConfidence: false,     // OCR 置信度低
-    errorMap: {},                  // 必填错误 {field:'请填写xxx'}
-    matchPreview: null,            // {isMatched, reasonLabel, existingMedicine?}
-    savePreview: null,             // 成功页展示内容
-
-    // ---- 安全提示 ----
     safetyNotices: [
-      'AI 只做预填，确认后才会写入家庭药品台账。',
-      '药无忧只做库存、有效期和提醒管理，不提供用药建议。'
-    ],
-
-    memberLabels: { U001: '小李', U002: '爸爸', U003: '妈妈' }
+      '扫码与拍照仅为辅助识别能力，保存前请人工核对。',
+      '药无忧只做家庭药品库存、有效期和提醒管理，不提供医疗诊断和用药建议。'
+    ]
   },
 
-  // ==================== 生命周期 ====================
   onLoad() {
-    const barcodeLibrary = mockBarcodeLibrary.map(x => ({
-      ...x,
-      confidenceLabel: pct(x.defaultSourceConfidence)
-    }));
-    const ocrScenarios = Object.keys(mockOcrResults).map(k => {
-      const o = mockOcrResults[k];
-      return { key: k, label: o.label, desc: o.desc, icon: o.icon };
-    });
-    this.setData({ barcodeLibrary, ocrScenarios });
+    this.refreshPickers();
   },
 
-  // ==================== 工具：更新进度条 ====================
-  _setStep(step) {
-    const idxMap = { choose: 0, barcode: 1, ocr: 2, confirm: 3, success: 4 };
-    const idx = idxMap[step] || 0;
-    const stepper = this.data.stepper.map((s, i) => ({
-      ...s,
-      active: i === idx - 1 && idx >= 1 && idx <= 4,
-      done: i < idx - 1
-    }));
-    this.setData({ step, stepper, stepIndex: idx, errorMap: {} });
+  onShow() {
+    this.refreshPickers();
+    this.ensureFamilyGate();
   },
 
-  // 从 targetMemberIds 推导 memberPickerIdx
-  _syncMemberPicker() {
-    const ids = this.data.form.medicine.targetMemberIds || [];
-    const opts = PICKER_OPTIONS.members;
-    let idx = 0;
-    if (ids.length >= 3) {
-      idx = opts.findIndex(o => o.key === 'family');
-    } else if (ids.includes('U003')) {
-      idx = opts.findIndex(o => o.key === 'U003');
-    } else if (ids.includes('U002')) {
-      idx = opts.findIndex(o => o.key === 'U002');
+  ensureFamilyGate() {
+    if (!appStore.hasFamily()) {
+      this.setData({ noFamily: true, step: 'choose' });
+      return false;
     }
-    this.setData({ memberPickerIdx: idx < 0 ? 0 : idx });
+    this.setData({ noFamily: false });
+    return true;
   },
 
-  _syncCategoryPicker() {
-    const c = this.data.form.medicine.category;
-    const i = this.data.categoryOptions.indexOf(c);
-    this.setData({ categoryPickerIdx: i < 0 ? 0 : i });
-  },
-
-  _syncLocationPicker() {
-    const l = this.data.form.medicine.storageLocation;
-    const i = this.data.locationOptions.indexOf(l);
-    this.setData({ locationPickerIdx: i < 0 ? 0 : i });
-  },
-
-  // ==================== Step 1：choose 选择入口 ====================
-  onScanBarcode() {
-    // 条码流程：choose -> barcode -> ocr -> confirm -> success
-    const idx = this.data.selectedBarcodeIdx;
-    const first = this.data.barcodeLibrary[idx];
-    this.setData({
-      entryMode: 'barcode',
-      barcodeRecognized: false,
-      barcodeResult: null,
-      form: { medicine: _emptyMedicineForm(), batch: _emptyBatchForm() },
-      sources: { medicineSource: null, batchSource: null, medicineConfidence: 1, batchConfidence: 1 },
-      lowMedicineConfidence: false, lowBatchConfidence: false
+  refreshPickers() {
+    const members = appStore.getMembers();
+    const allIds = (members || []).map(m => m.id);
+    const list = [
+      { key: 'family', label: '全家备用', ids: allIds.slice() }
+    ];
+    (members || []).forEach(m => {
+      list.push({
+        key: m.id,
+        label: `${m.name}（${m.relation || '家人'}）`,
+        ids: [m.id]
+      });
     });
-    this._setStep('barcode');
-    // 默认选中第一个（便于快速演示）
-    if (first) this._doSelectBarcode(idx);
+    const labels = list.map(x => x.label);
+    const labelMap = {};
+    (members || []).forEach(m => { labelMap[m.id] = m.name; });
+    this.setData({
+      membersPickerList: list,
+      memberPickerOptions: labels,
+      memberLabels: labelMap
+    });
+    this.syncPickers();
   },
 
-  onTakePhoto() {
-    // OCR-only 作为独立入口（不依赖条码）：choose -> ocr -> confirm（主档由确认页补）
+  goCreateFamily() {
+    wx.navigateTo({ url: '/pages/family/family?autoCreate=1' });
+  },
+
+  resetDraft() {
     this.setData({
-      entryMode: 'ocr-only',
-      ocrRecognized: false,
-      ocrResult: null,
-      selectedOcrKey: 'high',
-      form: { medicine: _emptyMedicineForm(), batch: _emptyBatchForm() },
-      sources: { medicineSource: null, batchSource: null, medicineConfidence: 1, batchConfidence: 1 },
-      lowMedicineConfidence: false, lowBatchConfidence: false
+      draft: emptyDraft(),
+      sources: {
+        medicineSource: 'manual',
+        batchSource: 'manual',
+        medicineConfidence: 1,
+        batchConfidence: 1
+      },
+      assistNotice: null,
+      matchPreview: null,
+      savePreview: null,
+      errorMap: {},
+      memberPickerIdx: 0,
+      categoryPickerIdx: 0,
+      locationPickerIdx: 0,
+      categoryCustomVisible: false,
+      memberCustomVisible: false,
+      locationCustomVisible: false
     });
-    this._setStep('ocr');
+  },
+
+  openFormWithDraft(patch) {
+    const current = this.data.draft || emptyDraft();
+    const next = {
+      medicine: Object.assign(emptyMedicine(), current.medicine, patch && patch.medicine),
+      batch: Object.assign(emptyBatch(), current.batch, patch && patch.batch)
+    };
+    this.setData({ step: 'form', draft: next, errorMap: {} });
+    this.syncPickers();
+    this.refreshMatchPreview();
   },
 
   onManualInput() {
-    // 手动录入：choose -> confirm
-    const med = _defaultManualMedicine();
-    const bat = _defaultManualBatch();
-    this.setData({
-      entryMode: 'manual',
-      form: { medicine: med, batch: bat },
-      sources: { medicineSource: 'manual', batchSource: 'manual', medicineConfidence: 1, batchConfidence: 1 },
-      lowMedicineConfidence: false, lowBatchConfidence: false,
-      barcodeRecognized: false, ocrRecognized: false
-    });
-    this._syncMemberPicker();
-    this._syncCategoryPicker();
-    this._syncLocationPicker();
-    this._refreshMatchPreview();
-    this._setStep('confirm');
+    if (!this.ensureFamilyGate()) return;
+    this.resetDraft();
+    this.openFormWithDraft();
   },
 
-  // ==================== Step 2：barcode 条码识别模拟 ====================
-  onSelectBarcode(e) {
-    const idx = Number(e.currentTarget.dataset.idx);
-    if (!Number.isFinite(idx)) return;
-    this._doSelectBarcode(idx);
-  },
-
-  _doSelectBarcode(idx) {
-    this.setData({ selectedBarcodeIdx: idx, barcodeRecognized: false, barcodeResult: null });
-  },
-
-  onStartBarcodeRecognize() {
-    const idx = this.data.selectedBarcodeIdx;
-    const entry = this.data.barcodeLibrary[idx];
-    if (!entry) {
-      wx.showToast({ title: '请选择模拟条码', icon: 'none' });
+  onScanAssist() {
+    if (!this.ensureFamilyGate()) return;
+    if (this.data.step === 'choose') this.resetDraft();
+    if (typeof wx.scanCode !== 'function') {
+      wx.showToast({ title: '当前环境不支持扫码', icon: 'none' });
       return;
     }
-    // 动画 loading 展示 800ms
-    wx.showLoading({ title: '条码识别中...', mask: true });
-    setTimeout(() => {
-      wx.hideLoading();
-      const res = lookupBarcode(entry.barcode);
-      if (!res) {
-        wx.showToast({ title: '未命中条码库', icon: 'none' });
-        return;
-      }
-      const med = res.medicine;
-      this.setData({
-        barcodeRecognized: true,
-        barcodeResult: {
-          ...res,
-          confidencePercent: pct(res.confidence),
-          targetMemberLabel: med.targetMemberLabel
-        },
-        'form.medicine': med,
-        'sources.medicineSource': 'barcode',
-        'sources.medicineConfidence': res.confidence,
-        lowMedicineConfidence: res.confidence < 0.8
-      });
-      this._syncMemberPicker();
-      this._syncCategoryPicker();
-      this._syncLocationPicker();
-      wx.vibrateShort && wx.vibrateShort({ type: 'light' });
-    }, 800);
-  },
-
-  onBarcodeNextOcr() {
-    if (!this.data.barcodeRecognized) {
-      wx.showToast({ title: '请先点击开始识别', icon: 'none' });
-      return;
-    }
-    this.setData({ ocrRecognized: false, ocrResult: null, selectedOcrKey: 'high' });
-    this._setStep('ocr');
-  },
-
-  onBarcodeManual() {
-    // 条码不对手动：保留当前 form.medicine（可继续改），medicine 来源转 manual
-    const med = this.data.form.medicine;
-    this.setData({
-      'sources.medicineSource': 'manual',
-      'sources.medicineConfidence': 1,
-      lowMedicineConfidence: false,
-      ocrRecognized: false, ocrResult: null,
-      form: {
-        medicine: Object.assign(_emptyMedicineForm(), med, {
-          targetMemberIds: med.targetMemberIds && med.targetMemberIds.length ? med.targetMemberIds : ['U002'],
-          targetMemberLabel: med.targetMemberLabel || '爸爸'
-        }),
-        batch: _emptyBatchForm()
-      }
-    });
-    this._syncMemberPicker();
-    this._syncCategoryPicker();
-    this._syncLocationPicker();
-    this._refreshMatchPreview();
-    this._setStep('confirm');
-  },
-
-  // ==================== Step 3：ocr OCR 模拟 ====================
-  onSelectOcr(e) {
-    const key = e.currentTarget.dataset.key;
-    if (!key) return;
-    this.setData({ selectedOcrKey: key, ocrRecognized: false, ocrResult: null });
-  },
-
-  onStartOcrRecognize() {
-    const key = this.data.selectedOcrKey;
-    if (!key) return;
-    wx.showLoading({ title: 'OCR 识别中...', mask: true });
-    setTimeout(() => {
-      wx.hideLoading();
-      const res = getOcrScenario(key);
-      if (!res) {
-        wx.showToast({ title: '识别失败', icon: 'none' });
-        return;
-      }
-      const lowConf = res.success ? res.confidence < 0.8 : false;
-      if (res.success) {
-        const currentBatch = this.data.form.batch;
-        // 保留用户可能已有的 unit（手动设置过的情况）
-        const merged = Object.assign({}, currentBatch, res.batch, {
-          totalQuantity: res.batch.totalQuantity,
-          remainingQuantity: res.batch.remainingQuantity
+    wx.scanCode({
+      onlyFromCamera: false,
+      scanType: ['barCode', 'qrCode'],
+      success: res => {
+        const code = res && res.result ? String(res.result).trim() : '';
+        if (!code) {
+          wx.showToast({ title: '未获取到扫码内容', icon: 'none' });
+          return;
+        }
+        const hit = lookupBarcode(code);
+        if (hit && hit.matched && hit.medicine) {
+          const med = Object.assign(emptyMedicine(), hit.medicine, { barcode: hit.barcode || code });
+          const isLocal = hit.source === 'local-family';
+          if (!isLocal) {
+            med.targetMemberIds = [];
+            med.targetMemberLabel = '';
+          }
+          this.setData({
+            sources: Object.assign({}, this.data.sources, {
+              medicineSource: 'barcode',
+              medicineConfidence: hit.confidence || (isLocal ? 1 : 0.86)
+            }),
+            assistNotice: {
+              type: 'success',
+              title: isLocal ? '已从家庭药箱识别' : '辅助识别结果，请核对',
+              desc: isLocal
+                ? `条码 ${hit.barcode || code} 已在本家庭药箱中学习过，已自动填充药品信息。保存前仍可修改。`
+                : `条码 ${hit.barcode || code} 命中内置辅助样本，置信度 ${percent(hit.confidence || 0.86)}%。保存前请人工核对。`
+            }
+          });
+          this.openFormWithDraft({ medicine: med });
+        } else {
+          const learnedBarcode = (hit && hit.barcode) || code;
+          this.setData({
+            sources: Object.assign({}, this.data.sources, {
+              medicineSource: 'manual',
+              medicineConfidence: 1
+            }),
+            assistNotice: {
+              type: 'warning',
+              title: '首次录入该条码',
+              desc: `已保留条码 ${learnedBarcode}。填写并保存后，下次在本家庭药箱中扫码会自动识别。`
+            }
+          });
+          this.openFormWithDraft({ medicine: { barcode: learnedBarcode } });
+        }
+      },
+      fail: err => {
+        const msg = err && err.errMsg ? String(err.errMsg) : '';
+        if (msg.indexOf('cancel') !== -1) {
+          wx.showToast({ title: '已取消扫码', icon: 'none' });
+          return;
+        }
+        wx.showModal({
+          title: '扫码失败',
+          content: '无法使用扫码功能，可以继续手动录入药品信息。',
+          showCancel: false,
+          confirmText: '手动录入',
+          success: () => this.onManualInput()
         });
+      }
+    });
+  },
+
+  onPhotoAssist() {
+    if (!this.ensureFamilyGate()) return;
+    if (this.data.step === 'choose') this.resetDraft();
+    const fillByScenario = (imageInfo) => {
+      const coverPatch = imageInfo && imageInfo.path
+        ? { coverImage: imageInfo.path, coverSource: imageInfo.source || 'photo' }
+        : {};
+      const res = this.getOcrScenario();
+      if (res && res.success) {
         this.setData({
-          ocrRecognized: true,
-          ocrResult: {
-            ...res,
-            confidencePercent: pct(res.confidence)
-          },
-          'form.batch': merged,
-          'sources.batchSource': 'ocr',
-          'sources.batchConfidence': res.confidence,
-          lowBatchConfidence: lowConf
+          sources: Object.assign({}, this.data.sources, {
+            batchSource: 'ocr',
+            batchConfidence: res.confidence || 0.82
+          }),
+          assistNotice: {
+            type: 'success',
+            title: '已辅助填充批次信息',
+            desc: `已识别批号、有效期或数量，置信度 ${percent(res.confidence || 0.82)}%。保存前请人工核对。`
+          }
         });
+        this.openFormWithDraft({ medicine: coverPatch, batch: res.batch });
       } else {
         this.setData({
-          ocrRecognized: true,
-          ocrResult: res,   // {success:false, errorMessage}
-          lowBatchConfidence: false
+          sources: Object.assign({}, this.data.sources, {
+            batchSource: 'manual',
+            batchConfidence: 1
+          }),
+          assistNotice: {
+            type: 'warning',
+            title: '未识别到有效批次信息',
+            desc: (res && res.errorMessage) || '请手动填写有效期、数量和批号。'
+          }
         });
+        this.openFormWithDraft({ medicine: coverPatch });
       }
-      wx.vibrateShort && wx.vibrateShort({ type: 'light' });
-    }, 900);
-  },
+    };
 
-  onOcrNextConfirm() {
-    if (!this.data.ocrRecognized) {
-      wx.showToast({ title: '请先选择并开始识别', icon: 'none' });
+    const chooseSuccess = (res, sourceType) => {
+      const imageInfo = this.extractChosenImage(res, sourceType);
+      wx.showLoading({ title: '识别中...', mask: true });
+      this.persistImagePath(imageInfo.path, savedPath => {
+        setTimeout(() => {
+          wx.hideLoading();
+          fillByScenario(Object.assign({}, imageInfo, { path: savedPath || imageInfo.path }));
+        }, 500);
+      });
+    };
+
+    if (typeof wx.chooseMedia === 'function') {
+      wx.chooseMedia({
+        count: 1,
+        mediaType: ['image'],
+        sourceType: ['camera', 'album'],
+        success: res => chooseSuccess(res, 'photo'),
+        fail: err => {
+          const msg = err && err.errMsg ? String(err.errMsg) : '';
+          if (msg.indexOf('cancel') !== -1) wx.showToast({ title: '已取消选择', icon: 'none' });
+        }
+      });
       return;
     }
-    if (this.data.ocrResult && !this.data.ocrResult.success) {
-      wx.showToast({ title: '识别失败，请重新识别或手动录入', icon: 'none' });
+    if (typeof wx.chooseImage === 'function') {
+      wx.chooseImage({
+        count: 1,
+        sourceType: ['camera', 'album'],
+        success: res => chooseSuccess(res, 'photo'),
+        fail: err => {
+          const msg = err && err.errMsg ? String(err.errMsg) : '';
+          if (msg.indexOf('cancel') !== -1) wx.showToast({ title: '已取消选择', icon: 'none' });
+        }
+      });
       return;
     }
-    // 如果是 ocr-only 且 medicine 还是空的：补一组默认值（不强制，用户可在确认页改）
-    if (this.data.entryMode === 'ocr-only') {
-      const curr = this.data.form.medicine;
-      if (!curr.name) {
-        const fallback = {
-          name: '（请填写药品名称）',
-          genericName: '',
-          shortName: '',
-          category: '降压',
-          specification: '（请填写规格）',
-          manufacturer: '',
-          barcode: '',
-          targetMemberIds: ['U002'],
-          targetMemberLabel: '爸爸',
-          storageLocation: '客厅药箱'
-        };
-        this.setData({
-          'form.medicine': Object.assign(_emptyMedicineForm(), fallback, curr),
-          'sources.medicineSource': this.data.sources.medicineSource || 'manual',
-          'sources.medicineConfidence': this.data.sources.medicineConfidence || 1
-        });
-      }
+    wx.showToast({ title: '当前环境不支持选择图片', icon: 'none' });
+  },
+
+  extractChosenImage(res, fallbackSource) {
+    if (res && res.tempFiles && res.tempFiles.length) {
+      const file = res.tempFiles[0] || {};
+      return {
+        path: file.tempFilePath || file.path || '',
+        source: fallbackSource || 'photo'
+      };
     }
-    this._syncMemberPicker();
-    this._syncCategoryPicker();
-    this._syncLocationPicker();
-    this._refreshMatchPreview();
-    this._setStep('confirm');
+    if (res && res.tempFilePaths && res.tempFilePaths.length) {
+      return {
+        path: res.tempFilePaths[0],
+        source: fallbackSource || 'album'
+      };
+    }
+    return { path: '', source: 'none' };
   },
 
-  onRetryOcr() {
-    this.setData({ ocrRecognized: false, ocrResult: null, lowBatchConfidence: false });
-  },
-
-  onOcrManual() {
-    // 手动录入批次：保留 OCR 结果（若有）但置信度强制 100%；若无则给默认
-    const base = this.data.ocrResult && this.data.ocrResult.success
-      ? this.data.ocrResult.batch
-      : _defaultManualBatch();
-    this.setData({
-      'form.batch': base,
-      'sources.batchSource': 'manual',
-      'sources.batchConfidence': 1,
-      lowBatchConfidence: false,
-      ocrRecognized: false, ocrResult: null
+  persistImagePath(path, done) {
+    if (!path || typeof wx.saveFile !== 'function') {
+      done && done(path || '');
+      return;
+    }
+    wx.saveFile({
+      tempFilePath: path,
+      success: res => done && done((res && res.savedFilePath) || path),
+      fail: () => done && done(path)
     });
-    this._refreshMatchPreview();
-    this._setStep('confirm');
   },
 
-  onSaveOcrDraft() {
-    this._showDraftToast();
+  onChooseCoverImage() {
+    if (!this.ensureFamilyGate()) return;
+    const applyImage = (res, source) => {
+      const imageInfo = this.extractChosenImage(res, source);
+      if (!imageInfo.path) {
+        wx.showToast({ title: '未获取到图片', icon: 'none' });
+        return;
+      }
+      this.persistImagePath(imageInfo.path, savedPath => {
+        this.setData({
+          'draft.medicine.coverImage': savedPath || imageInfo.path,
+          'draft.medicine.coverSource': imageInfo.source || 'album'
+        });
+      });
+    };
+    if (typeof wx.chooseMedia === 'function') {
+      wx.chooseMedia({
+        count: 1,
+        mediaType: ['image'],
+        sourceType: ['camera', 'album'],
+        success: res => applyImage(res, 'album'),
+        fail: err => {
+          const msg = err && err.errMsg ? String(err.errMsg) : '';
+          if (msg.indexOf('cancel') !== -1) wx.showToast({ title: '已取消选择', icon: 'none' });
+        }
+      });
+      return;
+    }
+    if (typeof wx.chooseImage === 'function') {
+      wx.chooseImage({
+        count: 1,
+        sourceType: ['camera', 'album'],
+        success: res => applyImage(res, 'album'),
+        fail: err => {
+          const msg = err && err.errMsg ? String(err.errMsg) : '';
+          if (msg.indexOf('cancel') !== -1) wx.showToast({ title: '已取消选择', icon: 'none' });
+        }
+      });
+      return;
+    }
+    wx.showToast({ title: '当前环境不支持选择图片', icon: 'none' });
   },
 
-  // ==================== 确认页：字段编辑 ====================
+  onRemoveCoverImage() {
+    this.setData({
+      'draft.medicine.coverImage': '',
+      'draft.medicine.coverSource': 'none'
+    });
+  },
+
+  getOcrScenario() {
+    const r = Math.random();
+    let key = 'high';
+    if (r < 0.12) key = 'fail';
+    else if (r < 0.28) key = 'low';
+    if (appStore.getOcrScenario) return appStore.getOcrScenario(key);
+    return null;
+  },
+
   onMedInput(e) {
     const field = e.currentTarget.dataset.field;
-    const v = e.detail.value;
-    this.setData({ [`form.medicine.${field}`]: v });
-    this._clearFieldError(field);
+    this.setData({ [`draft.medicine.${field}`]: e.detail.value });
+    this.clearFieldError(field);
+    if (field === 'name' || field === 'barcode') this.refreshMatchPreview();
   },
 
   onBatchInput(e) {
     const field = e.currentTarget.dataset.field;
-    let v = e.detail.value;
-    if (field === 'totalQuantity' || field === 'remainingQuantity') {
-      v = toNumber(v, '');
-    }
-    this.setData({ [`form.batch.${field}`]: v });
-    this._clearFieldError(field);
+    this.setData({ [`draft.batch.${field}`]: e.detail.value });
+    this.clearFieldError(field);
   },
 
   onMemberPicker(e) {
     const idx = Number(e.detail.value);
-    const opt = PICKER_OPTIONS.members[idx] || PICKER_OPTIONS.members[0];
+    const opt = this.data.membersPickerList[idx] || this.data.membersPickerList[0];
     this.setData({
       memberPickerIdx: idx,
-      'form.medicine.targetMemberIds': opt.ids.slice(),
-      'form.medicine.targetMemberLabel': opt.label
+      'draft.medicine.targetMemberIds': (opt && opt.ids && opt.ids.slice()) || [],
+      'draft.medicine.targetMemberLabel': (opt && opt.label) || ''
     });
-    this._clearFieldError('targetMemberIds');
+    this.clearFieldError('targetMemberIds');
+  },
+
+  onMemberQuickTap(e) {
+    const idx = Number(e.currentTarget.dataset.index);
+    const opt = this.data.membersPickerList[idx];
+    if (!opt) return;
+    this.setData({
+      memberPickerIdx: idx,
+      memberCustomVisible: false,
+      'draft.medicine.targetMemberIds': (opt.ids && opt.ids.slice()) || [],
+      'draft.medicine.targetMemberLabel': opt.label || '',
+      'draft.medicine.customTargetMemberName': ''
+    });
+    this.clearFieldError('targetMemberIds');
+  },
+
+  onMemberOtherTap() {
+    this.setData({
+      memberCustomVisible: true,
+      memberPickerIdx: -1,
+      'draft.medicine.targetMemberIds': [],
+      'draft.medicine.targetMemberLabel': this.data.draft.medicine.customTargetMemberName || ''
+    });
+  },
+
+  onMemberCustomInput(e) {
+    const value = e.detail.value;
+    this.setData({
+      memberCustomVisible: true,
+      memberPickerIdx: -1,
+      'draft.medicine.targetMemberIds': [],
+      'draft.medicine.targetMemberLabel': value,
+      'draft.medicine.customTargetMemberName': value
+    });
+    this.clearFieldError('targetMemberIds');
   },
 
   onCategoryPicker(e) {
     const idx = Number(e.detail.value);
-    const v = this.data.categoryOptions[idx];
-    this.setData({ categoryPickerIdx: idx, 'form.medicine.category': v });
-    this._clearFieldError('category');
+    this.setData({
+      categoryPickerIdx: idx,
+      'draft.medicine.category': this.data.categoryOptions[idx] || ''
+    });
+    this.clearFieldError('category');
+  },
+
+  onCategoryQuickTap(e) {
+    const idx = Number(e.currentTarget.dataset.index);
+    const category = this.data.categoryOptions[idx] || '';
+    this.setData({
+      categoryPickerIdx: idx,
+      categoryCustomVisible: false,
+      'draft.medicine.category': category
+    });
+    this.clearFieldError('category');
+    this.refreshMatchPreview();
+  },
+
+  onCategoryOtherTap() {
+    this.setData({
+      categoryPickerIdx: -1,
+      categoryCustomVisible: true,
+      'draft.medicine.category': this.isPresetCategory(this.data.draft.medicine.category) ? '' : this.data.draft.medicine.category
+    });
+  },
+
+  onCategoryCustomInput(e) {
+    this.setData({
+      categoryPickerIdx: -1,
+      categoryCustomVisible: true,
+      'draft.medicine.category': e.detail.value
+    });
+    this.clearFieldError('category');
   },
 
   onLocationPicker(e) {
     const idx = Number(e.detail.value);
-    const v = this.data.locationOptions[idx];
-    this.setData({ locationPickerIdx: idx, 'form.medicine.storageLocation': v });
-    this._clearFieldError('storageLocation');
+    this.setData({
+      locationPickerIdx: idx,
+      'draft.medicine.storageLocation': this.data.locationOptions[idx] || ''
+    });
+    this.clearFieldError('storageLocation');
+  },
+
+  onLocationQuickTap(e) {
+    const idx = Number(e.currentTarget.dataset.index);
+    const location = this.data.locationOptions[idx] || '';
+    this.setData({
+      locationPickerIdx: idx,
+      locationCustomVisible: false,
+      'draft.medicine.storageLocation': location
+    });
+    this.clearFieldError('storageLocation');
+  },
+
+  onLocationOtherTap() {
+    this.setData({
+      locationPickerIdx: -1,
+      locationCustomVisible: true,
+      'draft.medicine.storageLocation': this.isPresetLocation(this.data.draft.medicine.storageLocation) ? '' : this.data.draft.medicine.storageLocation
+    });
+  },
+
+  onLocationCustomInput(e) {
+    this.setData({
+      locationPickerIdx: -1,
+      locationCustomVisible: true,
+      'draft.medicine.storageLocation': e.detail.value
+    });
+    this.clearFieldError('storageLocation');
   },
 
   onProdDateChange(e) {
-    this.setData({ 'form.batch.productionDate': e.detail.value });
+    this.setData({ 'draft.batch.productionDate': e.detail.value });
   },
 
   onExpireDateChange(e) {
-    this.setData({ 'form.batch.expireDate': e.detail.value });
-    this._clearFieldError('expireDate');
+    this.setData({ 'draft.batch.expireDate': e.detail.value });
+    this.clearFieldError('expireDate');
   },
 
-  _clearFieldError(f) {
-    if (this.data.errorMap && this.data.errorMap[f]) {
-      const m = Object.assign({}, this.data.errorMap);
-      delete m[f];
-      this.setData({ errorMap: m });
+  syncPickers() {
+    const med = this.data.draft.medicine || emptyMedicine();
+    const memberOptions = this.data.membersPickerList || [];
+    let memberIdx = 0;
+    if (med.targetMemberIds && med.targetMemberIds.length) {
+      const found = memberOptions.findIndex(opt => {
+        const ids = opt.ids || [];
+        return ids.length === med.targetMemberIds.length &&
+          med.targetMemberIds.every(id => ids.indexOf(id) !== -1);
+      });
+      if (found >= 0) memberIdx = found;
     }
+    const catIdx = this.data.categoryOptions.indexOf(med.category);
+    const locIdx = this.data.locationOptions.indexOf(med.storageLocation);
+    const hasCustomMember = !med.targetMemberIds || med.targetMemberIds.length === 0
+      ? !!String(med.targetMemberLabel || med.customTargetMemberName || '').trim()
+      : false;
+    this.setData({
+      memberPickerIdx: hasCustomMember ? -1 : memberIdx,
+      categoryPickerIdx: catIdx,
+      locationPickerIdx: locIdx,
+      memberCustomVisible: hasCustomMember,
+      categoryCustomVisible: !!med.category && catIdx < 0,
+      locationCustomVisible: !!med.storageLocation && locIdx < 0
+    });
   },
 
-  // ==================== 确认页：匹配预览 ====================
-  _refreshMatchPreview() {
-    const { barcode, name } = this.data.form.medicine;
-    const hit = matchExistingMedicineByForm({ barcode, name });
-    if (hit) {
-      const reasonLabel = hit.reason === 'barcode' ? '匹配到相同条码' : '匹配到相同药品名称';
+  isPresetCategory(value) {
+    return this.data.categoryOptions.indexOf(value) >= 0;
+  },
+
+  isPresetLocation(value) {
+    return this.data.locationOptions.indexOf(value) >= 0;
+  },
+
+  clearFieldError(field) {
+    if (!this.data.errorMap || !this.data.errorMap[field]) return;
+    const next = Object.assign({}, this.data.errorMap);
+    delete next[field];
+    this.setData({ errorMap: next });
+  },
+
+  refreshMatchPreview() {
+    const med = this.data.draft.medicine || emptyMedicine();
+    const hit = matchExistingMedicineByForm({
+      barcode: med.barcode,
+      name: med.name
+    });
+    if (hit && hit.medicine) {
+      const reasonLabel = hit.matchType === 'barcode' ? '匹配到相同条码' : '匹配到相同药品名称';
+      const isSameNameDifferentBarcode = hit.matchType === 'name' &&
+        med.barcode &&
+        hit.medicine.barcode &&
+        hit.medicine.barcode !== med.barcode;
       this.setData({
         matchPreview: {
           isMatched: true,
-          reasonLabel,
-          existingMedicine: hit.medicine,
-          existingMedicineId: hit.medicine.id,
-          actionText: '将新增一个批次库存',
+          reasonLabel: isSameNameDifferentBarcode ? '可能是同一药品的新包装' : reasonLabel,
+          actionText: isSameNameDifferentBarcode
+            ? '保存后将为现有同名药品新增批次，并学习这个新条码'
+            : '保存后将为现有药品新增一个批次库存',
           cardBg: '#fff8e1',
-          cardFg: '#b7791f',
+          cardFg: '#8a5a15',
           cardIcon: '🔁'
         }
       });
-    } else {
-      this.setData({
-        matchPreview: {
-          isMatched: false,
-          reasonLabel: '未找到相同药品',
-          actionText: '将创建新药品主档，并新增第一个批次',
-          cardBg: '#eef5f1',
-          cardFg: '#276754',
-          cardIcon: '➕'
-        }
-      });
-    }
-  },
-
-  // ==================== 确认页：必填校验 ====================
-  _validate() {
-    const m = this.data.form.medicine;
-    const b = this.data.form.batch;
-    const err = {};
-    if (!String(m.name || '').trim()) err.name = '请填写药品名称';
-    if (!String(m.specification || '').trim()) err.specification = '请填写规格';
-    if (!String(b.expireDate || '').trim()) err.expireDate = '请选择有效期';
-    if (!toNumber(b.totalQuantity, NaN) && String(b.totalQuantity) !== '0') err.totalQuantity = '请填写总数量';
-    if (toNumber(b.remainingQuantity, NaN) === '' && String(b.remainingQuantity) !== '0' && !toNumber(b.remainingQuantity, NaN)) {
-      // 空串或非法
-      err.remainingQuantity = '请填写剩余数量';
-    }
-    if (!toNumber(b.remainingQuantity, 0) && String(b.remainingQuantity) !== '0') {
-      // 0 可允许，但若完全没填（undefined/空/null）算错
-      if (!b.remainingQuantity && b.remainingQuantity !== 0) err.remainingQuantity = '请填写剩余数量';
-    }
-    if (!m.targetMemberIds || m.targetMemberIds.length === 0) err.targetMemberIds = '请选择使用人';
-    if (!String(m.category || '').trim()) err.category = '请选择类别';
-    if (!String(m.storageLocation || '').trim()) err.storageLocation = '请选择存放位置';
-    this.setData({ errorMap: err });
-    return Object.keys(err).length === 0;
-  },
-
-  _firstErrorKey() {
-    const keys = Object.keys(this.data.errorMap || {});
-    return keys[0];
-  },
-
-  // ==================== 确认页：按钮 ====================
-  onConfirmSave() {
-    if (!this._validate()) {
-      const first = this._firstErrorKey();
-      wx.showToast({
-        title: this.data.errorMap[first] || '请完善必填字段',
-        icon: 'none'
-      });
       return;
     }
-    // 生成预览
-    const medicine = Object.assign({}, this.data.form.medicine, {
-      targetMemberIds: (this.data.form.medicine.targetMemberIds || []).slice()
-    });
-    const batch = Object.assign({}, this.data.form.batch, {
-      totalQuantity: toNumber(batch_total(this.data)),
-      remainingQuantity: toNumber(batch_remain(this.data))
-    });
-    if (!batch.remainingQuantity && batch.remainingQuantity !== 0) {
-      batch.remainingQuantity = batch.totalQuantity;
-    }
-    const batchStatus = _computePreviewBatchStatus(batch);
-    const batchStatusLabel = statusLabel(batchStatus);
-    const batchStatusColor = statusColor(batchStatus);
-    const expireDays = daysBetween(batch.expireDate);
-    const expireDaysText = batchStatus === 'expired'
-      ? `已过期 ${Math.abs(expireDays)} 天`
-      : `还有 ${expireDays} 天`;
-
-    // 修复：保存前基于最新表单重新执行匹配判断
-    // 不依赖进入确认页时生成的 matchPreview，避免用户修改名称/条码后预览不准确
-    const freshMatch = matchExistingMedicineByForm({
-      barcode: medicine.barcode,
-      name: medicine.name
-    });
-    const matched = !!freshMatch;
-    const matchedExistingMedicine = freshMatch ? freshMatch.medicine : null;
-    const actionSummary = matched
-      ? `已找到同名药品，将新增一个批次库存。`
-      : `将创建新药品主档，并新增第一个批次。`;
-
-    wx.showModal({
-      title: '保存前预览',
-      content: `${actionSummary}\n\n药品：${medicine.name}\n批次：${batch.batchNo || '（系统生成）'}\n有效期：${batch.expireDate}（${expireDaysText}）\n批次状态：${batchStatusLabel}`,
-      confirmText: '确认保存',
-      confirmColor: '#2e7d6a',
-      cancelText: '再看看',
-      success: (r) => {
-        if (!r.confirm) return;
-        // 构造成功页展示数据（使用最新匹配结果）
-        const finalMedicineId = matchedExistingMedicine ? matchedExistingMedicine.id : null;
-        const savePreview = {
-          actionSummary,
-          isMatched: matched,
-          finalMedicineId,
-          showDetailBtn: !!finalMedicineId,
-          finalMedicine: matchedExistingMedicine || medicine,
-          finalBatch: batch,
-          batchStatus,
-          batchStatusLabel,
-          batchStatusColor,
-          expireDaysText,
-          batchSource: this.data.sources.batchSource === 'ocr' ? 'OCR'
-                   : this.data.sources.batchSource === 'manual' ? '手动' : '未知',
-          medicineSource: this.data.sources.medicineSource === 'barcode' ? '条码'
-                        : this.data.sources.medicineSource === 'ocr' ? 'OCR' : '手动'
-        };
-        this.setData({ savePreview });
-        this._setStep('success');
+    this.setData({
+      matchPreview: {
+        isMatched: false,
+        reasonLabel: '未找到相同药品',
+        actionText: '保存后将创建新药品主档，并新增首个批次',
+        cardBg: '#eef5f1',
+        cardFg: '#276754',
+        cardIcon: '➕'
       }
     });
   },
 
-  onSaveDraft() {
-    this._showDraftToast();
+  validateDraft() {
+    const med = this.data.draft.medicine;
+    const batch = this.data.draft.batch;
+    const err = {};
+    if (!String(med.name || '').trim()) err.name = '请填写药品名称';
+    if (!String(med.specification || '').trim()) err.specification = '请填写规格';
+    if (!String(med.category || '').trim()) err.category = '请选择或填写类别';
+    if ((!med.targetMemberIds || med.targetMemberIds.length === 0) &&
+      !String(med.targetMemberLabel || med.customTargetMemberName || '').trim()) {
+      err.targetMemberIds = '请选择或填写使用人';
+    }
+    if (!String(med.storageLocation || '').trim()) err.storageLocation = '请选择或填写存放位置';
+    if (!String(batch.expireDate || '').trim()) err.expireDate = '请选择有效期';
+
+    const totalText = String(batch.totalQuantity || '').trim();
+    const remainText = String(batch.remainingQuantity || '').trim();
+    const total = Number(totalText);
+    const remain = Number(remainText);
+    if (!totalText || !Number.isFinite(total) || total <= 0) err.totalQuantity = '请填写大于 0 的总数量';
+    if (!remainText || !Number.isFinite(remain) || remain < 0) err.remainingQuantity = '请填写不小于 0 的剩余数量';
+    if (!err.totalQuantity && !err.remainingQuantity && remain > total) {
+      err.remainingQuantity = '剩余数量不能大于总数量';
+    }
+    this.setData({ errorMap: err });
+    return Object.keys(err).length === 0;
   },
 
-  _showDraftToast() {
+  firstErrorMessage() {
+    const keys = Object.keys(this.data.errorMap || {});
+    return keys.length ? this.data.errorMap[keys[0]] : '';
+  },
+
+  onConfirmSave() {
+    if (!this.ensureFamilyGate()) {
+      wx.showToast({ title: '请先创建家庭', icon: 'none' });
+      return;
+    }
+    if (!this.validateDraft()) {
+      wx.showToast({ title: this.firstErrorMessage() || '请完善必填字段', icon: 'none' });
+      return;
+    }
+
+    const med = Object.assign({}, this.data.draft.medicine, {
+      name: String(this.data.draft.medicine.name).trim(),
+      specification: String(this.data.draft.medicine.specification).trim(),
+      manufacturer: String(this.data.draft.medicine.manufacturer || '').trim(),
+      barcode: String(this.data.draft.medicine.barcode || '').trim(),
+      genericName: String(this.data.draft.medicine.genericName || '').trim(),
+      shortName: String(this.data.draft.medicine.shortName || this.data.draft.medicine.name).trim(),
+      targetMemberIds: (this.data.draft.medicine.targetMemberIds || []).slice(),
+      targetMemberLabel: String(this.data.draft.medicine.targetMemberLabel || this.data.draft.medicine.customTargetMemberName || '').trim(),
+      customTargetMemberName: String(this.data.draft.medicine.customTargetMemberName || '').trim(),
+      coverImage: String(this.data.draft.medicine.coverImage || '').trim(),
+      coverSource: this.data.draft.medicine.coverImage
+        ? String(this.data.draft.medicine.coverSource || 'photo').trim()
+        : 'none'
+    });
+    const batch = Object.assign({}, this.data.draft.batch, {
+      totalQuantity: toNumber(this.data.draft.batch.totalQuantity),
+      remainingQuantity: toNumber(this.data.draft.batch.remainingQuantity),
+      unit: String(this.data.draft.batch.unit || '片').trim(),
+      batchNo: String(this.data.draft.batch.batchNo || '').trim(),
+      imageSourceNote: String(this.data.draft.batch.imageSourceNote || '').trim(),
+      source: this.data.sources.batchSource || 'manual',
+      confidence: this.data.sources.batchConfidence || 1
+    });
+    const status = batchStatus(batch);
+    const expireDays = daysBetween(batch.expireDate);
+    const expireText = status === 'expired'
+      ? `已过期 ${Math.abs(expireDays)} 天`
+      : `还有 ${expireDays} 天`;
+    const match = matchExistingMedicineByForm({ barcode: med.barcode, name: med.name });
+    const summary = match
+      ? '已找到同名或同条码药品，将新增一个批次库存。'
+      : '将创建新药品主档，并新增第一个批次。';
+
     wx.showModal({
-      title: '已保存为草稿',
-      content: '已保存为待确认草稿，稍后可继续完善。\n\n未确认前不会进入正式家庭药品台账。',
-      showCancel: false,
-      confirmText: '好的',
-      confirmColor: '#2e7d6a'
+      title: '保存前确认',
+      content:
+        `${summary}\n\n药品：${med.name}\n规格：${med.specification}\n有效期：${batch.expireDate}（${expireText}）\n数量：${batch.remainingQuantity}/${batch.totalQuantity} ${batch.unit}\n\n请确认以上信息已人工核对。`,
+      confirmText: '确认保存',
+      confirmColor: '#2e7d6a',
+      cancelText: '再检查',
+      success: res => {
+        if (!res.confirm) return;
+        let writeResult = null;
+        try {
+          writeResult = appStore.addMedicineAndBatch(med, batch);
+        } catch (e) {
+          wx.showToast({ title: (e && e.message) || '保存失败', icon: 'none' });
+          return;
+        }
+        const finalMedicine = appStore.getMedicineById(writeResult.medicineId) || med;
+        this.setData({
+          step: 'success',
+          savePreview: {
+            actionSummary: writeResult.isNewMedicine
+              ? '已创建新药品主档，并新增首个批次。'
+              : '已为现有药品新增一个批次库存。',
+            finalMedicineId: writeResult.medicineId,
+            finalBatchId: writeResult.newBatchId,
+            finalMedicine,
+            finalBatch: Object.assign({}, batch, {
+              id: writeResult.newBatchId,
+              medicineId: writeResult.medicineId
+            }),
+            batchStatus: status,
+            batchStatusLabel: statusLabel(status),
+            batchStatusColor: statusColor(status),
+            expireDaysText: expireText,
+            medicineSource: this.sourceLabel(this.data.sources.medicineSource),
+            batchSource: this.sourceLabel(this.data.sources.batchSource)
+          }
+        });
+      }
     });
   },
 
-  onBackReIdentify() {
-    // 根据 entryMode 和当前是否有 OCR/条码 选择回退到哪一步：优先回到 OCR，再回到条码
-    const mode = this.data.entryMode;
-    if (mode === 'manual') {
-      this._setStep('choose');
-      return;
-    }
-    if (mode === 'ocr-only') {
-      this.setData({ ocrRecognized: false, ocrResult: null });
-      this._setStep('ocr');
-      return;
-    }
-    // barcode 模式：回到 OCR 步（如果 OCR 没做过）或条码步
-    if (this.data.ocrRecognized || this.data.sources.batchSource) {
-      this.setData({ ocrRecognized: false, ocrResult: null });
-      this._setStep('ocr');
-    } else {
-      this.setData({ barcodeRecognized: false, barcodeResult: null });
-      this._setStep('barcode');
-    }
+  sourceLabel(source) {
+    if (source === 'barcode') return '扫码辅助';
+    if (source === 'ocr') return '拍照辅助';
+    return '手动录入';
   },
 
-  // ==================== Step 5：成功页 ====================
+  onSaveDraft() {
+    wx.showModal({
+      title: '暂未保存草稿',
+      content: '当前版本先保存正式药品台账。草稿能力会在后续和提醒、云端同步一起完善。',
+      showCancel: false,
+      confirmText: '知道了'
+    });
+  },
+
+  onBackToChoose() {
+    this.setData({ step: 'choose' });
+  },
+
   onGoMedicines() {
     wx.switchTab({ url: '/pages/medicines/medicines' });
   },
@@ -678,41 +787,14 @@ Page({
   onGoDetail() {
     const id = this.data.savePreview && this.data.savePreview.finalMedicineId;
     if (!id) {
-      wx.showToast({
-        title: '演示版本：新药品主档暂未真实写入，已返回药箱',
-        icon: 'none',
-        duration: 2200
-      });
-      setTimeout(() => wx.switchTab({ url: '/pages/medicines/medicines' }), 900);
+      wx.switchTab({ url: '/pages/medicines/medicines' });
       return;
     }
-    wx.redirectTo({
-      url: `/pages/medicine-detail/medicine-detail?id=${id}`
-    });
+    wx.redirectTo({ url: `/pages/medicine-detail/medicine-detail?id=${id}` });
   },
 
-  // ==================== 通用：返回选择页（顶部） ====================
-  onBackToChoose() {
-    this._setStep('choose');
-  },
-
-  onBackToPrev() {
-    // 顶部小"返回"：按 step 顺序倒退回
-    const s = this.data.step;
-    if (s === 'barcode' || s === 'ocr-only' || s === 'success') this._setStep('choose');
-    else if (s === 'ocr') {
-      if (this.data.entryMode === 'barcode') this._setStep('barcode');
-      else this._setStep('choose');
-    }
-    else if (s === 'confirm') {
-      if (this.data.entryMode === 'manual') this._setStep('choose');
-      else if (this.data.entryMode === 'ocr-only') this._setStep('ocr');
-      else this._setStep('ocr');
-    }
-    else this._setStep('choose');
+  onAddAnother() {
+    this.resetDraft();
+    this.setData({ step: 'choose' });
   }
 });
-
-// -------------------- 辅助：避免在对象字面量里访问未定义变量 --------------------
-function batch_total(data) { return data.form.batch.totalQuantity; }
-function batch_remain(data) { return data.form.batch.remainingQuantity; }

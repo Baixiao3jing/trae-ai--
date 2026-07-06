@@ -11,7 +11,7 @@
 .user-bg {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(135deg, #1f5a4d 0%, #2e7d6a 45%, #4db69d 100%);
+  background: var(--gradient-brand);
   z-index: 0;
 }
 
@@ -22,7 +22,7 @@
   right: -60rpx;
   width: 360rpx;
   height: 360rpx;
-  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+  background: var(--gradient-hero-glow);
   border-radius: 50%;
 }
 
@@ -43,7 +43,7 @@
   height: 112rpx;
   background: rgba(255,255,255,0.2);
   border: 4rpx solid rgba(255,255,255,0.35);
-  border-radius: 32rpx;
+  border-radius: var(--radius-xl);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -74,7 +74,7 @@
 .members-preview {
   background: rgba(255, 255, 255, 0.16);
   border: 1rpx solid rgba(255, 255, 255, 0.22);
-  border-radius: 20rpx;
+  border-radius: var(--radius-card);
   padding: 20rpx 24rpx;
   display: flex;
   align-items: center;
@@ -130,7 +130,7 @@
 
 .menu-card {
   background: var(--surface);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow-sm);
   border: 1rpx solid var(--border);
   overflow: hidden;
@@ -152,7 +152,7 @@
 .menu-icon {
   width: 76rpx;
   height: 76rpx;
-  border-radius: 18rpx;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -271,7 +271,7 @@
 .demo-section {
   background: var(--surface);
   border: 1rpx solid var(--border);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-card);
   padding: 28rpx 24rpx;
   margin-bottom: 28rpx;
   box-shadow: var(--shadow-sm);
@@ -300,7 +300,7 @@
 .role-card {
   background: #fafcfb;
   border: 2rpx solid var(--border);
-  border-radius: 20rpx;
+  border-radius: var(--radius-card);
   padding: 20rpx 12rpx 16rpx;
   display: flex;
   flex-direction: column;
@@ -311,8 +311,8 @@
 }
 .role-card:active { transform: scale(0.97); }
 .role-card.is-active {
-  background: linear-gradient(135deg, #eafaf1, #ffffff);
-  border-color: #2e7d6a;
+  background: var(--gradient-success);
+  border-color: var(--primary);
   box-shadow: 0 4rpx 12rpx rgba(46, 125, 106, 0.14);
 }
 .role-card-avatar {
@@ -364,4 +364,93 @@
   padding: 2rpx 8rpx;
   border-radius: 100rpx;
   border: 1rpx solid #2e7d6a;
+}
+
+/* ---------- 第六阶段新增样式 ---------- */
+
+/* 家庭名空态（无家庭） */
+.user-family-empty {
+  color: rgba(255, 255, 255, 0.82);
+  font-style: italic;
+}
+
+/* 入门 CTA 卡片（无家庭阶段头部） */
+.hero-cta-card {
+  margin-top: 28rpx;
+  background: rgba(255, 255, 255, 0.14);
+  border: 2rpx solid rgba(255, 255, 255, 0.26);
+  border-radius: var(--radius-card);
+  padding: 24rpx 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  backdrop-filter: blur(6rpx);
+}
+.hero-cta-card:active {
+  background: rgba(255, 255, 255, 0.2);
+}
+.hero-cta-icon {
+  width: 72rpx; height: 72rpx;
+  background: #fff;
+  border-radius: 50%;
+  font-size: 38rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 8rpx 18rpx rgba(0,0,0,0.08);
+}
+.hero-cta-texts { flex: 1; }
+.hero-cta-title {
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 800;
+  margin-bottom: 6rpx;
+}
+.hero-cta-sub {
+  color: rgba(255,255,255,0.85);
+  font-size: 22rpx;
+  line-height: 1.5;
+}
+.hero-cta-arrow {
+  color: rgba(255,255,255,0.9);
+  font-size: 48rpx;
+  font-weight: 700;
+  padding-right: 8rpx;
+}
+
+/* 数据概览（已有家庭阶段） */
+.stats-mini-row {
+  display: flex;
+  gap: 16rpx;
+  margin: 20rpx 0 28rpx;
+}
+.stats-mini-item {
+  flex: 1;
+  background: var(--gradient-brand-soft);
+  border: 1rpx solid #dceee5;
+  border-radius: var(--radius-card);
+  padding: 22rpx 16rpx;
+  text-align: center;
+  box-shadow: 0 4rpx 10rpx rgba(46, 125, 106, 0.05);
+}
+.stats-mini-num {
+  font-size: 40rpx;
+  font-weight: 900;
+  color: var(--primary-dark);
+  line-height: 1.1;
+  margin-bottom: 4rpx;
+}
+.stats-mini-label {
+  font-size: 22rpx;
+  color: var(--text-light);
+  font-weight: 600;
+}
+
+/* 底部版本号补充 */
+.footer-tip-sub {
+  margin-top: 10rpx;
+  font-size: 20rpx;
+  color: #b5c4bd;
+  line-height: 1.6;
 }

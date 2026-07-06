@@ -1,4 +1,4 @@
-<!--pages/elder/elder.wxml-->
+<!--pages/elder/elder.wxml  第六阶段：三态切换-->
 <view class="elder-page">
   <!-- 顶部问候 -->
   <view class="elder-hero">
@@ -9,8 +9,8 @@
         <view class="elder-call" bindtap="onCallFamily">📞 联系家人</view>
       </view>
       <!-- 根据角色显示不同标题 -->
-      <view wx:if="{{isAdminPreview}}" class="elder-admin-preview">
-        <text class="elder-preview-tag">👀 预览模式</text>
+      <view wx:if="{{stage === 'ready' && isAdminView}}" class="elder-admin-preview">
+        <text class="elder-preview-tag">💡 子女查看视角</text>
       </view>
       <view class="elder-greet">{{headerTitle}}</view>
       <view class="elder-date">{{headerSubtitle}} · {{today}}</view>
@@ -32,10 +32,32 @@
   </view>
 
   <view class="elder-container">
-    <!-- 提醒列表 -->
-    <view class="elder-section-title">今日服药</view>
 
-    <block wx:if="{{reminders.length > 0}}">
+    <!-- ===== 阶段 1：无家庭 ===== -->
+    <block wx:if="{{stage === 'noFamily'}}">
+      <view class="elder-empty elder-empty-big">
+        <view class="elder-empty-icon">🏠</view>
+        <view class="elder-empty-title">请先创建家庭药箱</view>
+        <view class="elder-empty-desc">创建家庭后，管理员可以为老人添加用药提醒。</view>
+        <view class="elder-empty-btn" bindtap="goCreateFamily">去创建家庭</view>
+      </view>
+    </block>
+
+    <!-- ===== 阶段 2：有家庭但无提醒 ===== -->
+    <block wx:elif="{{stage === 'noReminders'}}">
+      <view class="elder-empty elder-empty-big">
+        <view class="elder-empty-icon">🌿</view>
+        <view class="elder-empty-title">今天暂时没有服药计划</view>
+        <view class="elder-empty-desc">请先在药箱中录入药品，或在添加药品时选择开启用药提醒。</view>
+        <view class="elder-empty-btn" bindtap="goAddMedicine">去录入药品</view>
+      </view>
+    </block>
+
+    <!-- ===== 阶段 3：有提醒 ===== -->
+    <block wx:else>
+      <!-- 提醒列表 -->
+      <view class="elder-section-title">今日服药</view>
+
       <view
         class="elder-card {{item.status === 'done' ? 'is-done' : ''}} {{item.status === 'upcoming' ? 'is-upcoming' : ''}} {{item.status === 'skipped' ? 'is-skipped' : ''}}"
         wx:for="{{reminders}}"
@@ -43,22 +65,10 @@
       >
         <view class="elder-time-box">
           <view class="elder-time">{{item.time}}</view>
-          <view
-            class="elder-time-dot"
-            wx:if="{{item.status === 'pending'}}"
-          ></view>
-          <view
-            wx:if="{{item.status === 'done'}}"
-            class="elder-done-icon"
-          >✓</view>
-          <view
-            wx:if="{{item.status === 'upcoming'}}"
-            class="elder-upcoming"
-          >⏰</view>
-          <view
-            wx:if="{{item.status === 'skipped'}}"
-            class="elder-skipped-icon"
-          >⊘</view>
+          <view class="elder-time-dot" wx:if="{{item.status === 'pending'}}"></view>
+          <view wx:if="{{item.status === 'done'}}" class="elder-done-icon">✓</view>
+          <view wx:if="{{item.status === 'upcoming'}}" class="elder-upcoming">⏰</view>
+          <view wx:if="{{item.status === 'skipped'}}" class="elder-skipped-icon">⊘</view>
         </view>
 
         <view class="elder-main">
@@ -73,39 +83,20 @@
             </view>
           </view>
 
-          <!-- 按钮：待服用 -->
           <block wx:if="{{item.status === 'pending'}}">
             <view class="elder-btns">
-              <view
-                class="elder-btn elder-btn-take"
-                catchtap="onTake"
-                data-id="{{item.id}}"
-              >已服用</view>
-              <view
-                class="elder-btn elder-btn-later"
-                catchtap="onLater"
-                data-id="{{item.id}}"
-              >稍后提醒</view>
+              <view class="elder-btn elder-btn-take" catchtap="onTake" data-id="{{item.id}}">已服用</view>
+              <view class="elder-btn elder-btn-later" catchtap="onLater" data-id="{{item.id}}">稍后提醒</view>
             </view>
           </block>
 
-          <!-- 按钮：稍后服用（upcoming 也给操作按钮，便于演示闭环） -->
           <block wx:if="{{item.status === 'upcoming'}}">
             <view class="elder-btns">
-              <view
-                class="elder-btn elder-btn-take"
-                catchtap="onTake"
-                data-id="{{item.id}}"
-              >已服用</view>
-              <view
-                class="elder-btn elder-btn-later"
-                catchtap="onLater"
-                data-id="{{item.id}}"
-              >稍后提醒</view>
+              <view class="elder-btn elder-btn-take" catchtap="onTake" data-id="{{item.id}}">已服用</view>
+              <view class="elder-btn elder-btn-later" catchtap="onLater" data-id="{{item.id}}">稍后提醒</view>
             </view>
           </block>
 
-          <!-- 按钮：已完成 -->
           <block wx:if="{{item.status === 'done'}}">
             <view class="elder-btns">
               <view class="elder-done-tip">
@@ -115,7 +106,6 @@
             </view>
           </block>
 
-          <!-- 按钮：已跳过 -->
           <block wx:if="{{item.status === 'skipped'}}">
             <view class="elder-btns">
               <view class="elder-skipped-tip">
@@ -128,17 +118,11 @@
       </view>
     </block>
 
-    <view wx:else class="elder-empty">
-      <view class="elder-empty-icon">🌿</view>
-      <view class="elder-empty-title">今日已全部完成</view>
-      <view class="elder-empty-desc">记得明天按时服用哦</view>
-    </view>
-
-    <!-- 底部说明 -->
+    <!-- 底部说明（所有阶段都展示） -->
     <view class="elder-tip-box">
       <view class="elder-tip-title">💚 温馨提示</view>
       <view class="elder-tip-desc">
-        有任何问题请联系家人「小李」。药无忧只做家庭药品库存、有效期、提醒和补货管理，不提供用药建议，具体请遵医嘱。
+        有任何问题请联系家人。药无忧只做家庭药品库存、有效期、提醒和补货管理，不提供用药建议，具体请遵医嘱。
       </view>
     </view>
   </view>

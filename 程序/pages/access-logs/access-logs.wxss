@@ -10,7 +10,7 @@
 .logs-hero-bg {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(135deg, #4a235a 0%, #7d3c98 40%, #a569bd 100%);
+  background: var(--gradient-privacy);
 }
 .logs-hero-bg::after {
   content: '';
@@ -18,7 +18,7 @@
   top: -80rpx; left: 50%;
   width: 560rpx; height: 560rpx;
   transform: translateX(-50%);
-  background: radial-gradient(circle, rgba(255,255,255,0.18) 0%, transparent 70%);
+  background: var(--gradient-hero-glow);
   border-radius: 50%;
 }
 .logs-hero-inner { position: relative; z-index: 1; }
@@ -37,7 +37,7 @@
 .stats-card {
   background: #ffffff;
   border: 1rpx solid var(--border);
-  border-radius: 24rpx;
+  border-radius: var(--radius-card);
   padding: 22rpx 12rpx;
   box-shadow: var(--shadow-md);
   position: relative;
@@ -66,9 +66,9 @@
 
 /* 顶部说明 */
 .top-note {
-  background: linear-gradient(135deg, #eef5f1, #ffffff);
+  background: var(--gradient-brand-soft);
   border: 1rpx solid #b4ddc7;
-  border-radius: 20rpx;
+  border-radius: var(--radius-card);
   padding: 20rpx 22rpx;
   display: flex;
   gap: 16rpx;
@@ -91,7 +91,7 @@
 .legend {
   background: var(--surface);
   border: 1rpx solid var(--border);
-  border-radius: 20rpx;
+  border-radius: var(--radius-card);
   padding: 22rpx 24rpx;
   margin-bottom: 24rpx;
   box-shadow: var(--shadow-sm);
@@ -125,7 +125,7 @@
 .log-list {
   background: var(--surface);
   border: 1rpx solid var(--border);
-  border-radius: 24rpx;
+  border-radius: var(--radius-card);
   overflow: hidden;
   box-shadow: var(--shadow-sm);
   margin-bottom: 24rpx;

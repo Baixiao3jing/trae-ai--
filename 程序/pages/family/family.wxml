@@ -1,257 +1,401 @@
 <!--pages/family/family.wxml-->
 <view class="page">
-  <!-- 家庭信息 -->
-  <view class="family-header">
-    <view class="family-bg"></view>
-    <view class="family-inner">
-      <view class="family-icon-wrap">
-        <view class="family-icon">🏠</view>
-      </view>
-      <view class="family-name">{{family.name}}</view>
-      <view class="family-info">
-        <text>邀请码</text>
-        <view class="family-code" bindtap="copyInviteCode">
-          <text class="family-code-text">{{family.inviteCode}}</text>
-          <text class="family-code-copy">复制</text>
+  <!-- ===== 无家庭阶段：创建家庭表单 ===== -->
+  <block wx:if="{{stage === 'noFamily'}}">
+    <view class="family-header">
+      <view class="family-bg"></view>
+      <view class="family-inner family-inner-create">
+        <view class="family-icon-wrap">
+          <view class="family-icon">🏠</view>
         </view>
-      </view>
-    </view>
-  </view>
-
-  <view class="container">
-    <!-- 家庭概览卡（第五阶段新增） -->
-    <view class="overview-card" style="margin-top: -40rpx;">
-      <view class="overview-title">
-        <text class="overview-title-icon">📋</text>
-        家庭概览
-      </view>
-      <view class="overview-grid">
-        <view class="overview-item">
-          <view class="overview-num">{{overview.totalMemberCount}}</view>
-          <view class="overview-label">成员总数</view>
-        </view>
-        <view class="overview-item">
-          <view class="overview-num text-warn">{{overview.elderCount}}</view>
-          <view class="overview-label">老人人数</view>
-        </view>
-        <view class="overview-item">
-          <view class="overview-num">{{overview.medicineCount}}</view>
-          <view class="overview-label">药品主档</view>
-        </view>
-        <view class="overview-item">
-          <view class="overview-num">{{overview.batchCount}}</view>
-          <view class="overview-label">总批次数</view>
-        </view>
-      </view>
-      <view class="overview-footer">
-        <view class="overview-info-row">
-          <text class="overview-info-key">管理员</text>
-          <text class="overview-info-val">👨‍💼 小李</text>
-        </view>
-        <view class="overview-info-row">
-          <text class="overview-info-key">创建时间</text>
-          <text class="overview-info-val">{{overview.createdText}}</text>
-        </view>
-        <view class="overview-info-row">
-          <text class="overview-info-key">家庭邀请码</text>
-          <text class="overview-info-val overview-code-val">{{family.inviteCode}}</text>
+        <view class="family-name">创建你的家庭药箱</view>
+        <view class="family-info">
+          <text>简单填写 3 项，开启家庭共享</text>
         </view>
       </view>
     </view>
 
-    <!-- 邀请按钮 -->
-    <view class="invite-card" bindtap="openInvite">
-      <view class="invite-icon">➕</view>
-      <view class="invite-main">
-        <view class="invite-title">邀请老人加入家庭</view>
-        <view class="invite-desc">支持邀请码或微信分享链接方式，老人加入时可看到大字授权说明</view>
-      </view>
-      <view class="invite-arrow">›</view>
-    </view>
-
-    <!-- 角色权限说明（第五阶段新增） -->
-    <view class="section-title mt-32">角色权限说明</view>
-    <view class="role-grid">
-      <view
-        class="role-card"
-        wx:for="{{rolePermissions}}"
-        wx:key="key"
-        style="background: {{item.bgColor}}; border-color: {{item.color}};"
-      >
-        <view class="role-card-head">
-          <text class="role-card-icon">{{item.icon}}</text>
-          <text class="role-card-label" style="color: {{item.color}};">{{item.roleLabel}}</text>
-        </view>
-        <view class="role-card-desc">{{item.desc}}</view>
-        <view class="role-card-who">适合：{{item.who}}</view>
-      </view>
-    </view>
-
-    <!-- 成员列表（增强：关系/可编辑/权限摘要） -->
-    <view class="section-title mt-32">家庭成员（{{members.length}}）</view>
-    <view class="member-list">
-      <view
-        class="member-card"
-        wx:for="{{members}}"
-        wx:key="id"
-        data-member="{{item}}"
-        bindtap="onMemberTap"
-      >
-        <view class="member-avatar">{{item.avatar}}</view>
-        <view class="member-main">
-          <view class="member-header">
-            <text class="member-name">{{item.name}}</text>
-            <text
-              class="tag"
-              wx:if="{{item.role === 'admin'}}"
-              style="background: #e7f2ee; color: #2e7d6a;"
-            >管理员</text>
-            <text
-              class="tag"
-              wx:if="{{item.role === 'elder'}}"
-              style="background: #fff8e1; color: #f39c12;"
-            >老人</text>
-            <text
-              class="tag"
-              wx:if="{{item.role === 'member'}}"
-              style="background: #e8f4fd; color: #3498db;"
-            >家庭成员</text>
-            <text
-              class="tag tag-edit {{item.editable ? 'tag-edit-yes' : 'tag-edit-no'}}"
-            >{{item.editableText}}</text>
+    <view class="container">
+      <view class="app-form-card">
+        <view class="app-form-field">
+          <view class="app-form-label">
+            <text class="app-form-required">*</text>
+            家庭名称
           </view>
-          <view class="member-sub">
-            <text>与户主关系：{{item.relation}}</text>
-            <text class="member-sub-dot">·</text>
-            <text>加入：{{item.joinTime}}</text>
+          <input
+            class="app-form-input"
+            type="text"
+            maxlength="20"
+            placeholder="例如：我们家的药箱"
+            value="{{form.familyName}}"
+            bindinput="onFamilyNameInput"
+          />
+        </view>
+        <view class="app-form-field">
+          <view class="app-form-label">
+            <text class="app-form-required">*</text>
+            管理员姓名
           </view>
-          <view class="member-perm">权限：{{item.permissionSummary}}</view>
+          <input
+            class="app-form-input"
+            type="text"
+            maxlength="10"
+            placeholder="请输入你的姓名或称呼"
+            value="{{form.adminName}}"
+            bindinput="onAdminNameInput"
+          />
         </view>
-        <view class="member-arrow">›</view>
-      </view>
-    </view>
-
-    <!-- 快速入口：隐私与授权 / 访问记录 -->
-    <view class="section-title mt-32">家庭信任与透明</view>
-    <view class="quick-row">
-      <view class="quick-mini" bindtap="goPrivacy">
-        <view class="quick-mini-icon" style="background: #e8f4fd; color: #3498db;">🔒</view>
-        <view class="quick-mini-main">
-          <view class="quick-mini-title">隐私与授权</view>
-          <view class="quick-mini-desc">查看采集字段与用户权利</view>
+        <view class="app-form-field">
+          <view class="app-form-label">家庭备注</view>
+          <textarea
+            class="app-form-textarea"
+            maxlength="80"
+            placeholder="可选"
+            value="{{form.note}}"
+            bindinput="onNoteInput"
+          />
+          <view class="app-form-helper">比如：家里常用药，爸妈、我和妹妹共用。</view>
         </view>
-        <view class="quick-mini-arrow">›</view>
-      </view>
-      <view class="quick-mini" bindtap="goAccessLogs">
-        <view class="quick-mini-icon" style="background: #f5eef9; color: #8e44ad;">📋</view>
-        <view class="quick-mini-main">
-          <view class="quick-mini-title">访问与操作记录</view>
-          <view class="quick-mini-desc">追溯所有重要操作</view>
-        </view>
-        <view class="quick-mini-arrow">›</view>
-      </view>
-    </view>
-
-    <!-- 小提示 -->
-    <view class="tip-box mt-32">
-      <view class="tip-icon">💡</view>
-      <view class="tip-text">
-        <view class="tip-title">温馨提示</view>
-        <view class="tip-desc">老人端加入时将看到大字版说明，确认后才能查看家庭药品台账，符合适老化与知情同意原则。</view>
-      </view>
-    </view>
-  </view>
-
-  <!-- 邀请弹窗（新增"老人加入预览"按钮） -->
-  <view class="mask {{showInvite ? 'show' : ''}}" bindtap="closeInvite"></view>
-  <view class="sheet {{showInvite ? 'show' : ''}}" catchtap="">
-    <view class="sheet-handle"></view>
-    <view class="sheet-title">邀请老人加入家庭</view>
-    <view class="sheet-desc">选择一种方式，将家人加入「{{family.name}}」</view>
-
-    <view class="invite-way" bindtap="shareInvite">
-      <view class="invite-way-icon" style="background: #e7f2ee; color: #2e7d6a;">📤</view>
-      <view class="invite-way-main">
-        <view class="invite-way-title">微信分享链接</view>
-        <view class="invite-way-desc">直接发送给父母的微信，打开后自动进入家庭</view>
-      </view>
-      <view class="invite-way-arrow">›</view>
-    </view>
-
-    <view class="invite-way" bindtap="copyInviteCode">
-      <view class="invite-way-icon" style="background: #fff8e1; color: #f39c12;">🔢</view>
-      <view class="invite-way-main">
-        <view class="invite-way-title">邀请码加入</view>
-        <view class="invite-way-desc">
-          邀请码：<text class="invite-code-big">{{family.inviteCode}}</text>
+        <view class="btn-create" bindtap="onSubmitCreate">创建家庭</view>
+        <view class="app-form-helper">
+          家庭创建后，你可以录入药品并邀请家人。家庭邀请码将在创建后生成。
         </view>
       </view>
-      <view class="invite-way-btn">复制</view>
+
+      <view class="tip-box mt-32">
+        <view class="tip-icon">💚</view>
+        <view class="tip-text">
+          <view class="tip-title">药无忧 · 小贴士</view>
+          <view class="tip-desc">药无忧只做家庭药品库存、有效期、提醒和补货管理，不提供医疗诊断和用药建议。</view>
+        </view>
+      </view>
     </view>
+  </block>
 
-    <!-- 第五阶段新增：老人加入预览 -->
-    <view class="invite-way invite-way-elder" bindtap="openElderAgreement">
-      <view class="invite-way-icon" style="background: #eafaf1; color: #27ae60;">👁</view>
-      <view class="invite-way-main">
-        <view class="invite-way-title">老人加入预览</view>
-        <view class="invite-way-desc">提前预览老人看到的大字版授权说明（推荐比赛演示）</view>
-      </view>
-      <view class="invite-way-arrow">›</view>
-    </view>
-
-    <view class="sheet-close" bindtap="closeInvite">取消</view>
-  </view>
-
-  <!-- 第五阶段新增：大字版老人加入授权说明弹窗 -->
-  <view class="mask {{showElderAgreement ? 'show' : ''}}" bindtap="closeElderAgreement"></view>
-  <view class="elder-agree {{showElderAgreement ? 'show' : ''}}" catchtap="">
-    <view class="elder-agree-head">
-      <text class="elder-agree-emoji">🧓</text>
-      <view class="elder-agree-title">邀请您加入家庭药箱</view>
-    </view>
-
-    <view class="elder-agree-card">
-      <view class="elder-agree-row elder-agree-highlight">
-        <text class="elder-agree-row-key">👦 谁邀请我</text>
-        <text class="elder-agree-row-val">{{elderAgreementContent.inviterName}}（您的{{elderAgreementContent.inviterRelation}}）</text>
-      </view>
-      <view class="elder-agree-row elder-agree-highlight">
-        <text class="elder-agree-row-key">🏠 加入哪个家庭</text>
-        <text class="elder-agree-row-val">{{elderAgreementContent.familyName}}</text>
-      </view>
-      <view class="elder-agree-divider"></view>
-      <view class="elder-agree-row">
-        <text class="elder-agree-row-key">👀 谁能看到我的提醒</text>
-        <text class="elder-agree-row-val">家庭管理员 {{elderAgreementContent.inviterName}} 和您信任的家人</text>
-      </view>
-      <view class="elder-agree-row">
-        <text class="elder-agree-row-key">💊 他们会看到什么</text>
-        <text class="elder-agree-row-val">药品台账、服药确认状态、临期/过期/库存不足提醒</text>
-      </view>
-      <view class="elder-agree-row">
-        <text class="elder-agree-row-key">✅ 我能做什么</text>
-        <text class="elder-agree-row-val">查看今日提醒、点击「已服用」、一键联系家人</text>
-      </view>
-      <view class="elder-agree-row">
-        <text class="elder-agree-row-key">🚫 我不能做什么</text>
-        <text class="elder-agree-row-val">不能编辑、删除或新增药品（由孩子代为管理）</text>
-      </view>
-      <view class="elder-agree-row">
-        <text class="elder-agree-row-key">🚪 如何退出</text>
-        <text class="elder-agree-row-val">可在「我的」页面退出家庭，退出后无法再查看。</text>
+  <!-- ===== 有家庭阶段 ===== -->
+  <block wx:else>
+    <view class="family-header">
+      <view class="family-bg"></view>
+      <view class="family-inner">
+        <view class="family-icon-wrap">
+          <view class="family-icon">🏠</view>
+        </view>
+        <view class="family-name">{{family.name}}</view>
+        <view class="family-info">
+          <text>邀请码</text>
+          <view class="family-code" bindtap="copyInviteCode">
+            <text class="family-code-text">{{family.inviteCode}}</text>
+            <text class="family-code-copy">复制</text>
+          </view>
+        </view>
       </view>
     </view>
 
-    <view class="elder-agree-tip">
-      <text class="elder-agree-tip-icon">💚</text>
-      <text class="elder-agree-tip-text">
-        药无忧只做家庭药品库存、有效期、提醒和补货管理，不提供用药建议，具体请遵医嘱。
-      </text>
+    <view class="container">
+      <view class="overview-card" style="margin-top: -40rpx;">
+        <view class="overview-title">
+          <text class="overview-title-icon">📋</text>
+          家庭概览
+        </view>
+        <view class="overview-grid">
+          <view class="overview-item">
+            <view class="overview-num">{{overview.totalMemberCount}}</view>
+            <view class="overview-label">成员总数</view>
+          </view>
+          <view class="overview-item">
+            <view class="overview-num text-warn">{{overview.elderCount}}</view>
+            <view class="overview-label">老人人数</view>
+          </view>
+          <view class="overview-item">
+            <view class="overview-num">{{overview.medicineCount}}</view>
+            <view class="overview-label">药品主档</view>
+          </view>
+          <view class="overview-item">
+            <view class="overview-num">{{overview.batchCount}}</view>
+            <view class="overview-label">总批次数</view>
+          </view>
+        </view>
+        <view class="overview-footer">
+          <view class="overview-info-row">
+            <text class="overview-info-key">管理员</text>
+            <text class="overview-info-val">👨‍💼 {{overview.adminName}}</text>
+          </view>
+          <view class="overview-info-row">
+            <text class="overview-info-key">创建时间</text>
+            <text class="overview-info-val">{{overview.createdText}}</text>
+          </view>
+          <view class="overview-info-row">
+            <text class="overview-info-key">家庭邀请码</text>
+            <text class="overview-info-val overview-code-val">{{family.inviteCode}}</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="invite-card" bindtap="openInvite">
+        <view class="invite-icon">➕</view>
+        <view class="invite-main">
+          <view class="invite-title">邀请家人加入家庭</view>
+          <view class="invite-desc">家人加入后可以查看家庭药品台账，老人默认只读，管理员可以录入和编辑药品。</view>
+        </view>
+        <view class="invite-arrow">›</view>
+      </view>
+
+      <view class="section-title mt-32">角色权限说明</view>
+      <view class="role-grid">
+        <view
+          class="role-card"
+          wx:for="{{rolePermissions}}"
+          wx:key="key"
+          style="background: {{item.bgColor}}; border-color: {{item.color}};"
+        >
+          <view class="role-card-head">
+            <text class="role-card-icon">{{item.icon}}</text>
+            <text class="role-card-label" style="color: {{item.color}};">{{item.roleLabel}}</text>
+          </view>
+          <view class="role-card-desc">{{item.desc}}</view>
+          <view class="role-card-who">适合：{{item.who}}</view>
+        </view>
+      </view>
+
+      <view class="section-title mt-32">家庭成员（{{members.length}}）</view>
+      <view class="member-list">
+        <view
+          class="member-card"
+          wx:for="{{members}}"
+          wx:key="id"
+          data-member="{{item}}"
+          bindtap="onMemberTap"
+        >
+          <view class="member-avatar">{{item.avatar}}</view>
+          <view class="member-main">
+            <view class="member-header">
+              <text class="member-name">{{item.name}}</text>
+              <text
+                class="tag"
+                wx:if="{{item.role === 'admin'}}"
+                style="background: #e7f2ee; color: #2e7d6a;"
+              >管理员</text>
+              <text
+                class="tag"
+                wx:if="{{item.role === 'elder'}}"
+                style="background: #fff8e1; color: #f39c12;"
+              >老人</text>
+              <text
+                class="tag"
+                wx:if="{{item.role === 'member'}}"
+                style="background: #e8f4fd; color: #3498db;"
+              >家庭成员</text>
+              <text
+                class="tag tag-edit {{item.editable ? 'tag-edit-yes' : 'tag-edit-no'}}"
+              >{{item.editableText}}</text>
+            </view>
+            <view class="member-sub">
+              <text>与户主关系：{{item.relation}}</text>
+              <text class="member-sub-dot">·</text>
+              <text>加入：{{item.joinTime}}</text>
+            </view>
+            <view class="member-perm">权限：{{item.permissionSummary}}</view>
+          </view>
+          <view class="member-arrow">›</view>
+        </view>
+      </view>
+
+      <view class="section-title mt-32">家庭信任与透明</view>
+      <view class="quick-row">
+        <view class="quick-mini" bindtap="goPrivacy">
+          <view class="quick-mini-icon" style="background: #e8f4fd; color: #3498db;">🔒</view>
+          <view class="quick-mini-main">
+            <view class="quick-mini-title">隐私与授权</view>
+            <view class="quick-mini-desc">查看采集字段与用户权利</view>
+          </view>
+          <view class="quick-mini-arrow">›</view>
+        </view>
+        <view class="quick-mini" bindtap="goAccessLogs">
+          <view class="quick-mini-icon" style="background: #f5eef9; color: #8e44ad;">📋</view>
+          <view class="quick-mini-main">
+            <view class="quick-mini-title">访问与操作记录</view>
+            <view class="quick-mini-desc">追溯所有重要操作</view>
+          </view>
+          <view class="quick-mini-arrow">›</view>
+        </view>
+      </view>
+
+      <view class="tip-box mt-32">
+        <view class="tip-icon">💚</view>
+        <view class="tip-text">
+          <view class="tip-title">药无忧 · 小贴士</view>
+          <view class="tip-desc">药无忧只做家庭药品库存、有效期、提醒和补货管理，不提供医疗诊断和用药建议。</view>
+        </view>
+      </view>
     </view>
 
-    <view class="elder-agree-btns">
-      <view class="elder-agree-btn elder-agree-btn-primary" bindtap="onAgreeJoin">我已了解并同意加入</view>
-      <view class="elder-agree-btn elder-agree-btn-default" bindtap="closeElderAgreement">暂不加入</view>
+    <!-- 邀请弹窗：分享 / 邀请码 / 快速添加家人（本地录入） -->
+    <view class="mask {{showInvite ? 'show' : ''}}" bindtap="closeInvite"></view>
+    <view class="sheet {{showInvite ? 'show' : ''}}" catchtap="">
+      <view class="sheet-handle"></view>
+      <view class="sheet-title">邀请家人加入家庭</view>
+      <view class="sheet-desc">选择一种方式，将家人加入「{{family.name}}」</view>
+
+      <view class="invite-way" bindtap="shareInvite">
+        <view class="invite-way-icon" style="background: #e7f2ee; color: #2e7d6a;">📤</view>
+        <view class="invite-way-main">
+          <view class="invite-way-title">微信分享邀请</view>
+          <view class="invite-way-desc">直接发送给家人的微信，打开后自动进入家庭</view>
+        </view>
+        <view class="invite-way-arrow">›</view>
+      </view>
+
+      <view class="invite-way" bindtap="copyInviteCode">
+        <view class="invite-way-icon" style="background: #fff8e1; color: #f39c12;">🔢</view>
+        <view class="invite-way-main">
+          <view class="invite-way-title">邀请码邀请</view>
+          <view class="invite-way-desc">
+            邀请码：<text class="invite-code-big">{{family.inviteCode}}</text>
+          </view>
+        </view>
+        <view class="invite-way-btn">复制</view>
+      </view>
+
+      <view class="invite-way invite-way-elder" bindtap="openElderAgreement">
+        <view class="invite-way-icon" style="background: #eafaf1; color: #27ae60;">👁</view>
+        <view class="invite-way-main">
+          <view class="invite-way-title">邀请长辈加入（大字版）</view>
+          <view class="invite-way-desc">大字版授权说明，可先预览再让长辈阅读并加入</view>
+        </view>
+        <view class="invite-way-arrow">›</view>
+      </view>
+
+      <view class="invite-way invite-way-mock" bindtap="openQuickAdd">
+        <view class="invite-way-icon" style="background: #fff4e5; color: #d35400;">👨‍👩‍👧</view>
+        <view class="invite-way-main">
+          <view class="invite-way-title">快速添加家人（本地录入）</view>
+          <view class="invite-way-desc">先本地录入家人关系和姓名，方便配置提醒与台账</view>
+        </view>
+        <view class="invite-way-arrow">›</view>
+      </view>
+
+      <view class="sheet-close" bindtap="closeInvite">取消</view>
     </view>
-  </view>
+
+    <!-- 老人加入预览（大字版授权说明） -->
+    <view class="mask {{showElderAgreement ? 'show' : ''}}" bindtap="closeElderAgreement"></view>
+    <view class="elder-agree {{showElderAgreement ? 'show' : ''}}" catchtap="">
+      <view class="elder-agree-head">
+        <text class="elder-agree-emoji">🧓</text>
+        <view class="elder-agree-title">邀请您加入家庭药箱</view>
+      </view>
+
+      <view class="elder-agree-card">
+        <view class="elder-agree-row elder-agree-highlight">
+          <text class="elder-agree-row-key">👦 谁邀请我</text>
+          <text class="elder-agree-row-val">{{elderAgreementContent.inviterName}}（您的{{elderAgreementContent.inviterRelation}}）</text>
+        </view>
+        <view class="elder-agree-row elder-agree-highlight">
+          <text class="elder-agree-row-key">🏠 加入哪个家庭</text>
+          <text class="elder-agree-row-val">{{elderAgreementContent.familyName}}</text>
+        </view>
+        <view class="elder-agree-divider"></view>
+        <view class="elder-agree-row">
+          <text class="elder-agree-row-key">👀 谁能看到我的提醒</text>
+          <text class="elder-agree-row-val">家庭管理员 {{elderAgreementContent.inviterName}} 和您信任的家人</text>
+        </view>
+        <view class="elder-agree-row">
+          <text class="elder-agree-row-key">💊 他们会看到什么</text>
+          <text class="elder-agree-row-val">药品台账、服药确认状态、临期/过期/库存不足提醒</text>
+        </view>
+        <view class="elder-agree-row">
+          <text class="elder-agree-row-key">✅ 我能做什么</text>
+          <text class="elder-agree-row-val">查看今日提醒、点击「已服用」、一键联系家人</text>
+        </view>
+        <view class="elder-agree-row">
+          <text class="elder-agree-row-key">🚫 我不能做什么</text>
+          <text class="elder-agree-row-val">不能编辑、删除或新增药品（由孩子代为管理）</text>
+        </view>
+        <view class="elder-agree-row">
+          <text class="elder-agree-row-key">🚪 如何退出</text>
+          <text class="elder-agree-row-val">可在「我的」页面退出家庭，退出后无法再查看。</text>
+        </view>
+      </view>
+
+      <view class="elder-agree-tip">
+        <text class="elder-agree-tip-icon">💚</text>
+        <text class="elder-agree-tip-text">
+          药无忧只做家庭药品库存、有效期、提醒和补货管理，不提供用药建议，具体请遵医嘱。
+        </text>
+      </view>
+
+      <view class="elder-agree-btns">
+        <view class="elder-agree-btn elder-agree-btn-primary" bindtap="onAgreeJoin">我已了解并同意加入</view>
+        <view class="elder-agree-btn elder-agree-btn-default" bindtap="closeElderAgreement">暂不加入</view>
+      </view>
+    </view>
+
+    <!-- 快速添加家人（本地录入） -->
+    <view class="mask {{showQuickAdd ? 'show' : ''}}" bindtap="closeQuickAdd"></view>
+    <view class="sheet {{showQuickAdd ? 'show' : ''}}" catchtap="">
+      <view class="sheet-handle"></view>
+      <view class="sheet-title">快速添加家人（本地录入）</view>
+      <view class="sheet-desc">选择家人关系，然后填写姓名或称呼</view>
+
+      <view class="mock-pick-list">
+        <view class="mock-pick-item" data-type="elder_male" bindtap="onTemplatePick">
+          <view class="mock-pick-avatar mock-pick-dad">👴</view>
+          <view class="mock-pick-main">
+            <view class="mock-pick-name">长辈（男）</view>
+            <view class="mock-pick-role">老人 · 只读自己的提醒，可确认服药</view>
+          </view>
+          <view class="invite-way-arrow">›</view>
+        </view>
+        <view class="mock-pick-item" data-type="elder_female" bindtap="onTemplatePick">
+          <view class="mock-pick-avatar mock-pick-mom">👵</view>
+          <view class="mock-pick-main">
+            <view class="mock-pick-name">长辈（女）</view>
+            <view class="mock-pick-role">老人 · 只读自己的提醒，可确认服药</view>
+          </view>
+          <view class="invite-way-arrow">›</view>
+        </view>
+        <view class="mock-pick-item" data-type="spouse" bindtap="onTemplatePick">
+          <view class="mock-pick-avatar mock-pick-other" style="background:#ffe8e8;">👩‍❤️‍👨</view>
+          <view class="mock-pick-main">
+            <view class="mock-pick-name">配偶</view>
+            <view class="mock-pick-role">家庭成员 · 可查看台账，协助录入</view>
+          </view>
+          <view class="invite-way-arrow">›</view>
+        </view>
+        <view class="mock-pick-item" data-type="child" bindtap="onTemplatePick">
+          <view class="mock-pick-avatar mock-pick-other" style="background:#e6f4ff;">👶</view>
+          <view class="mock-pick-main">
+            <view class="mock-pick-name">子女</view>
+            <view class="mock-pick-role">家庭成员 · 可查看台账，协助录入</view>
+          </view>
+          <view class="invite-way-arrow">›</view>
+        </view>
+        <view class="mock-pick-item" data-type="other" bindtap="onTemplatePick">
+          <view class="mock-pick-avatar mock-pick-other">🙋</view>
+          <view class="mock-pick-main">
+            <view class="mock-pick-name">自定义家人</view>
+            <view class="mock-pick-role">自定义关系 · 角色可选择老人/成员</view>
+          </view>
+          <view class="invite-way-arrow">›</view>
+        </view>
+      </view>
+
+      <block wx:if="{{showCustomName}}">
+        <view class="other-member-block app-form-field">
+          <view class="app-form-label">请填写家人姓名或称呼</view>
+          <input
+            class="app-form-input"
+            type="text"
+            maxlength="10"
+            placeholder="例如：爸爸 / 妈妈 / 哥哥 / 奶奶"
+            value="{{customMemberName}}"
+            bindinput="onCustomNameInput"
+          />
+          <view class="btn-create btn-create-sm" bindtap="confirmCustomMember">确认添加</view>
+        </view>
+      </block>
+
+      <view class="sheet-close" bindtap="closeQuickAdd">取消</view>
+    </view>
+  </block>
 </view>

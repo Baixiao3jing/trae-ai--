@@ -1,104 +1,113 @@
 // pages/index/index.js
-// 药无忧第四阶段：dashboard.todayUnconfirmedCount 和今日关注的"待确认服药"项
-// 必须基于 demoStore 的最新 medicationRecords 计算
-// 首页 onShow 时重新读取 demoStore 刷新，确保老人端确认后子女端同步变化
+// 药无忧第六阶段：真实从零使用流程
+// - 无家庭 → 显示"创建家庭药箱"引导
+// - 有家庭但无药品 → 显示"空药箱"引导（添加药品 / 邀请家人）
+// - 有数据 → 显示基于真实数据的统计、今日关注
 
-const {
-  family,
-  members,
-  getDashboardStats,
-  getTodayAttention
-} = require('../../utils/mockData.js');
-
-const {
-  getDashboardStatsWithDemoStore,
-  getTodayAttentionWithDemoStore,
-  getCurrentRole
-} = require('../../utils/demoStore.js');
+const appStore = require('../../utils/appStore.js');
 
 Page({
   data: {
-    family: {},
-    user: {},
-    dashboard: {},
+    // 流程阶段：'noFamily' | 'emptyMedicine' | 'hasData'
+    stage: 'noFamily',
+    family: null,
+    user: null,
+    dashboard: {
+      medicineCount: 0,
+      nearExpireCount: 0,
+      expiredCount: 0,
+      lowStockCount: 0,
+      todayUnconfirmedCount: 0
+    },
     todayList: [],
-    // 同步提示：老人端确认后子女端会自动更新
-    syncTip: '老人端确认后，子女端会自动更新今日关注。',
-    // 当前角色（用于显示当前身份）
-    currentRole: null
+    currentRole: null,
+    syncTip: '家人确认服药后，家庭端会自动同步今日关注。'
   },
 
   _refreshAll() {
-    // 基于 mockData 的基础统计（药品总数、临期、过期、库存不足）
-    const baseStats = getDashboardStats();
-    // 基于 demoStore 最新 records 重算 todayUnconfirmedCount
-    const dashboard = getDashboardStatsWithDemoStore(baseStats);
-
-    // 基于 mockData 的今日关注（临期、过期、库存不足）
-    const baseList = getTodayAttention();
-    // 基于 demoStore 最新 records 重算"待确认服药"项
-    const todayList = getTodayAttentionWithDemoStore(baseList);
-
-    // 当前角色（用于显示身份信息）
-    const currentRole = getCurrentRole();
-    // 用户仍显示"管理员"作为操作人（首页是子女端视角）
-    const currentUser = members.find(m => m.role === 'admin') || members[0];
+    const s = appStore.readAppState();
+    const family = s.currentFamily;
+    const user = s.currentUser;
+    let stage = 'noFamily';
+    if (family) {
+      stage = (s.medicines && s.medicines.length > 0) ? 'hasData' : 'emptyMedicine';
+    }
+    const dashboard = family ? appStore.getDashboardStats() : {
+      medicineCount: 0, nearExpireCount: 0, expiredCount: 0, lowStockCount: 0, todayUnconfirmedCount: 0
+    };
+    const todayList = family ? appStore.getTodayAttention() : [];
+    const currentRole = appStore.getCurrentRole();
 
     this.setData({
+      stage,
+      family,
+      user,
       dashboard,
       todayList,
-      currentRole,
-      user: currentUser
+      currentRole
     });
   },
 
   onLoad() {
-    this.setData({ family });
     this._refreshAll();
   },
 
   onShow() {
-    // 每次显示都重新读取 demoStore 刷新（老人端确认后回到首页能看到变化）
+    // 每次显示都重算：家庭创建、药品录入、老人端确认、重置都会更新
     this._refreshAll();
   },
 
-  goAddMedicine() {
-    wx.navigateTo({
-      url: '/pages/add-medicine/add-medicine'
+  // ==================== 空家庭阶段 ====================
+  onCreateFamily() {
+    wx.navigateTo({ url: '/pages/family/family?autoCreate=1' });
+  },
+
+  onLearnMore() {
+    wx.showModal({
+      title: '药无忧能做什么',
+      content: '药无忧帮你管理家庭药品：\n\n1. 录入药品主档和批次，自动关注有效期和库存。\n2. 给家人设置用药提醒，老人确认服药后全家同步。\n3. 家人共享同一份药箱，谁都能补录和确认。\n\n药无忧只做家庭药品库存、有效期、提醒和补货管理，不提供医疗诊断和用药建议。',
+      showCancel: false,
+      confirmText: '知道了'
     });
   },
 
+  // ==================== 空药箱阶段 ====================
+  goAddMedicine() {
+    if (!appStore.hasFamily()) {
+      wx.showToast({ title: '请先创建家庭', icon: 'none' });
+      return;
+    }
+    wx.navigateTo({ url: '/pages/add-medicine/add-medicine' });
+  },
+
+  onInviteFromEmpty() {
+    wx.navigateTo({ url: '/pages/family/family?invite=1' });
+  },
+
+  // ==================== 有数据阶段 ====================
   goMedicines() {
-    wx.switchTab({
-      url: '/pages/medicines/medicines'
-    });
+    wx.switchTab({ url: '/pages/medicines/medicines' });
   },
 
   goFamily() {
-    wx.navigateTo({
-      url: '/pages/family/family'
-    });
+    wx.navigateTo({ url: '/pages/family/family' });
   },
 
   goElder() {
-    wx.navigateTo({
-      url: '/pages/elder/elder'
-    });
+    if (!appStore.hasFamily()) {
+      wx.showToast({ title: '请先创建家庭', icon: 'none' });
+      return;
+    }
+    wx.navigateTo({ url: '/pages/elder/elder' });
   },
 
   onAttentionTap(e) {
     const item = e.currentTarget.dataset.item;
     if (!item) return;
-    // 如果有 medicineId（临期/过期/库存不足）-> 跳药品详情
     if (item.medicineId) {
-      wx.navigateTo({
-        url: `/pages/medicine-detail/medicine-detail?id=${item.medicineId}`
-      });
+      wx.navigateTo({ url: `/pages/medicine-detail/medicine-detail?id=${item.medicineId}` });
       return;
     }
-    // 否则（待确认服药 ATT-PENDING-GLOBAL 或无 id 的项）-> 跳老人端
-    wx.navigateTo({
-      url: '/pages/elder/elder'
-    });
+    wx.navigateTo({ url: '/pages/elder/elder' });
   }
 });

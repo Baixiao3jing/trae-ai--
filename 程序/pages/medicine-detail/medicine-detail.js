@@ -1,11 +1,7 @@
 // pages/medicine-detail/medicine-detail.js
-// 第二阶段：正式主档 + 批次列表（按规则排序）+ 汇总信息 + 安全提示
+// 第六阶段：读取真实 appStore 数据，展示主档 + 批次 + （可选）用药计划
+const appStore = require('../../utils/appStore.js');
 const {
-  medicines,
-  members,
-  getMedicineSummary,
-  getMedicineBatches,
-  getMemberNames,
   categoryColor,
   statusLabel,
   statusColor,
@@ -26,29 +22,79 @@ Page({
       { key: 'plan', label: '用药计划' }
     ],
     activeTab: 'info',
-    batches: []
+    batches: [],
+    notFound: false,
+    noFamily: false
   },
 
   onLoad(options) {
-    const id = options.id || 'M001';
-    const medicine = medicines.find(m => m.id === id) || medicines[0];
-    const summary = getMedicineSummary(medicine.id);
-    const batches = getMedicineBatches(medicine.id).map(b => {
-      const sc = statusColor(b.status);
+    this._load(options);
+  },
+
+  onShow() {
+    const id = this.data.medicine && this.data.medicine.id;
+    if (id) this._load({ id });
+  },
+
+  _load(options) {
+    if (!appStore.hasFamily()) {
+      this.setData({ noFamily: true, notFound: false });
+      wx.setNavigationBarTitle({ title: '药品详情' });
+      return;
+    }
+    const id = options.id || (this.data.medicine && this.data.medicine.id) || null;
+    if (!id) {
+      this.setData({ notFound: true, noFamily: false });
+      wx.setNavigationBarTitle({ title: '药品详情' });
+      return;
+    }
+    const medicine = appStore.getMedicineById(id);
+    if (!medicine) {
+      this.setData({ notFound: true, noFamily: false });
+      wx.setNavigationBarTitle({ title: '药品详情' });
+      return;
+    }
+    const summary = appStore.getMedicineSummary(id);
+    const rawBatches = appStore.getMedicineBatches(id);
+    const batches = rawBatches.map(b => {
+      // 动态计算批次级状态（基于有效期 + 剩余库存）
+      const bs = appStore.computeBatchStatus(b);
+      // 存储级 b.status 若为 inactive / disabled，也覆盖
+      const effectiveStatus = (b.status === 'inactive' || b.status === 'disabled') ? 'inactive' : bs;
+      const sc = statusColor(effectiveStatus);
       const expireDays = daysBetween(b.expireDate);
       return {
         ...b,
-        statusLabel: statusLabel(b.status),
+        status: effectiveStatus,
+        statusLabel: statusLabel(effectiveStatus),
         statusColor: sc,
         batchBorderColor: sc,
         remainPercent: b.totalQuantity > 0
           ? Math.max(0, Math.min(100, Math.round(b.remainingQuantity / b.totalQuantity * 100)))
           : 0,
+        progressStyle: `width: ${
+          b.totalQuantity > 0
+            ? Math.max(0, Math.min(100, Math.round(b.remainingQuantity / b.totalQuantity * 100)))
+            : 0
+        }%; background: ${
+          b.totalQuantity > 0 && Math.round(b.remainingQuantity / b.totalQuantity * 100) < 30
+            ? '#e74c3c'
+            : '#2e7d6a'
+        };`,
         confidencePercent: Math.round((b.confidence || 0) * 100),
-        expireDaysText: b.status === 'expired'
+        expireDaysText: effectiveStatus === 'expired'
           ? `已过期 ${Math.abs(expireDays)} 天`
           : `还有 ${expireDays} 天`
       };
+    }).sort((a, b) => {
+      const order = { expired: 0, nearExpire: 1, warning: 1, lowStock: 2, normal: 3, inactive: 4, disabled: 5 };
+      const aOrder = order[a.status] != null ? order[a.status] : 99;
+      const bOrder = order[b.status] != null ? order[b.status] : 99;
+      if (aOrder !== bOrder) return aOrder - bOrder;
+      const aExpire = String(a.expireDate || '');
+      const bExpire = String(b.expireDate || '');
+      if (aExpire && bExpire) return aExpire < bExpire ? -1 : aExpire > bExpire ? 1 : 0;
+      return (String(a.batchNo || '') < String(b.batchNo || '') ? -1 : 1);
     });
 
     wx.setNavigationBarTitle({
@@ -61,9 +107,11 @@ Page({
         categoryColor: categoryColor(medicine.category)
       },
       summary,
-      forMemberText: getMemberNames(medicine.targetMemberIds),
+      forMemberText: appStore.getMemberNames(medicine.targetMemberIds, medicine.targetMemberLabel || medicine.customTargetMemberName || ''),
       categoryColor: categoryColor(medicine.category),
-      batches
+      batches,
+      notFound: false,
+      noFamily: false
     });
   },
 
@@ -71,16 +119,27 @@ Page({
     this.setData({ activeTab: e.currentTarget.dataset.key });
   },
 
-  // ========== 操作按钮（第二阶段模拟 Toast，不真正改数据） ==========
   goAddBatch() {
-    wx.showToast({ title: '新增批次（第三阶段接入）', icon: 'none' });
+    if (!appStore.hasFamily()) return;
+    const mid = this.data.medicine && this.data.medicine.id;
+    if (!mid) return;
+    // 跳转到添加药品页，携带 medicineId 表示"新增批次"入口
+    wx.navigateTo({
+      url: `/pages/add-medicine/add-medicine?entryMode=manual&medicineId=${mid}`,
+      fail: () => {
+        wx.showToast({ title: '新增批次（暂未接入）', icon: 'none' });
+      }
+    });
   },
+
   goEditBatch(e) {
     const no = (e.currentTarget.dataset.batch || {}).batchNo;
     wx.showToast({ title: `编辑批次 ${no}（开发中）`, icon: 'none' });
   },
+
   goDisableBatch(e) {
-    const no = (e.currentTarget.dataset.batch || {}).batchNo;
+    const batch = e.currentTarget.dataset.batch || {};
+    const no = batch.batchNo;
     wx.showModal({
       title: '停用批次',
       content: `批次「${no}」停用时会被排除在可用库存与补货计算之外，确定吗？\n（演示版本：不实际修改数据）`,
@@ -90,10 +149,20 @@ Page({
       }
     });
   },
+
   goSetReminder() {
     wx.showToast({ title: '用药提醒配置（开发中）', icon: 'none' });
   },
+
   goEdit() {
     wx.showToast({ title: '编辑主档（开发中）', icon: 'none' });
+  },
+
+  goBackMedicines() {
+    wx.switchTab({ url: '/pages/medicines/medicines' });
+  },
+
+  goCreateFamily() {
+    wx.navigateTo({ url: '/pages/family/family?autoCreate=1' });
   }
 });

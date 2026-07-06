@@ -2,7 +2,7 @@
 
 /* 顶部汇总样式增强 */
 .hero-tag-restock {
-  background: linear-gradient(135deg, #e67e22, #d35400);
+  background: linear-gradient(135deg, var(--color-elder-600), var(--color-elder-700));
   color: #fff;
   margin-left: 6rpx;
 }
@@ -13,14 +13,14 @@
 
 /* 通用 tip 样式增强 */
 .warn-tip {
-  background: linear-gradient(135deg, #fff8e1, #fffaf0);
+  background: var(--gradient-warning);
   border: 1rpx solid #f4e2b8;
 }
 .warn-tip .tip-title { color: #b7791f; }
 .warn-tip .tip-desc  { color: #8a6d3b; }
 
 .main-tip {
-  background: linear-gradient(135deg, #eafaf1, #f7faf8);
+  background: var(--gradient-success);
   border: 1rpx solid #b8dace;
 }
 .main-tip .tip-title { color: var(--primary-dark); }
@@ -47,7 +47,7 @@
 
 /* 批次来源 + 置信度 卡片 */
 .batch-meta-card {
-  background: linear-gradient(135deg, #f7faf8, #fff);
+  background: var(--gradient-brand-soft);
   border: 1rpx solid var(--border);
   border-radius: var(--radius);
   padding: 16rpx 20rpx;
@@ -125,7 +125,7 @@
 .hero-bg {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: linear-gradient(135deg, #1f5a4d 0%, #2e7d6a 50%, #4db69d 100%);
+  background: var(--gradient-brand);
 }
 
 .hero-bg::after {
@@ -135,7 +135,7 @@
   right: -60rpx;
   width: 380rpx;
   height: 380rpx;
-  background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
+  background: var(--gradient-hero-glow);
   border-radius: 50%;
 }
 
@@ -339,7 +339,7 @@
   border: 1rpx solid var(--border);
   box-shadow: var(--shadow-sm);
   margin-bottom: 18rpx;
-  background: linear-gradient(135deg, #fff, var(--surface-alt));
+  background: linear-gradient(135deg, #ffffff, var(--surface-alt));
 }
 
 .batch-top {
@@ -398,7 +398,7 @@
 
 /* tip 框 */
 .tip-box {
-  background: linear-gradient(135deg, #e7f2ee, #fff);
+  background: var(--gradient-brand-soft);
   border: 1rpx solid #b8dace;
   border-radius: 18rpx;
   padding: 20rpx 22rpx;
@@ -458,4 +458,41 @@
   color: var(--text-light);
   line-height: 1.7;
   padding: 0 20rpx;
+}
+
+/* ---------- 空态（无家庭 / 药品不存在） ---------- */
+.empty-page {
+  min-height: 100vh;
+  background: var(--page-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40rpx;
+  box-sizing: border-box;
+}
+.empty-card {
+  width: 100%;
+  background: #fff;
+  border-radius: 28rpx;
+  padding: 64rpx 40rpx 48rpx;
+  text-align: center;
+  box-shadow: 0 12rpx 36rpx rgba(46, 125, 106, 0.08);
+  border: 2rpx dashed #c9e4d7;
+}
+.empty-icon {
+  font-size: 96rpx;
+  margin-bottom: 20rpx;
+}
+.empty-title {
+  font-size: 36rpx;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 14rpx;
+}
+.empty-desc {
+  font-size: 26rpx;
+  color: var(--text-light);
+  line-height: 1.7;
+  margin-bottom: 36rpx;
+  padding: 0 16rpx;
 }

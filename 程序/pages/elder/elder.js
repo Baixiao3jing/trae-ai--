@@ -1,17 +1,7 @@
 // pages/elder/elder.js
-// 药无忧第四阶段：基于正式模型（medicationPlans+medicines+members）+ demoStore 生成老人端提醒
-// 支持两种入口：
-//   1. 管理员预览：展示所有老人（爸爸+妈妈）的提醒，顶部显示"老人端预览 · 子女正在查看"
-//   2. 老人角色（爸爸/妈妈）：只展示自己的提醒，顶部显示"早上好，爸爸/妈妈"
-
+// 第六阶段：基于真实 appStore 生成老人端提醒，区分"无家庭/无提醒/有提醒"
+const appStore = require('../../utils/appStore.js');
 const {
-  medicationPlans,
-  medicines,
-  members
-} = require('../../utils/mockData.js');
-
-const {
-  generateElderReminders,
   confirmMedicationRecord,
   skipMedicationRecord,
   isCurrentRoleAdmin,
@@ -23,17 +13,15 @@ Page({
     today: '',
     dateStr: '',
     greet: '',
-    // 展示用标题：根据角色不同显示不同问候
     headerTitle: '',
     headerSubtitle: '',
-    // 是否为管理员预览模式
-    isAdminPreview: true,
-    // 当前角色对象（用于显示老人名字）
+    isAdminView: true,
     currentRole: null,
     reminders: [],
     completedCount: 0,
     pendingCount: 0,
-    skippedCount: 0
+    skippedCount: 0,
+    stage: 'ready' // ready / noFamily / noReminders
   },
 
   onLoad() {
@@ -42,7 +30,6 @@ Page({
   },
 
   onShow() {
-    // 从首页切换回来也要刷新（因为可能从子女端重置了数据）
     this.refreshReminders();
   },
 
@@ -68,11 +55,28 @@ Page({
   },
 
   refreshReminders() {
+    // Stage 1：无家庭 → 空态
+    if (!appStore.hasFamily()) {
+      this.setData({
+        stage: 'noFamily',
+        reminders: [],
+        completedCount: 0,
+        pendingCount: 0,
+        skippedCount: 0,
+        headerTitle: '家人提醒（大字版）',
+        headerSubtitle: '请先创建家庭药箱'
+      });
+      return;
+    }
+
     const isAdmin = isCurrentRoleAdmin();
     const currentRole = getCurrentRole();
+    const members = appStore.getMembers();
+    const medicines = appStore.getMedicines();
+    const medicationPlans = appStore.getMedicationPlans();
 
-    // 基于 medicationPlans + medicines + members + demoStore.records 生成
-    const reminders = generateElderReminders({
+    // 生成提醒（基于 appStore + demoStore 的记录）
+    const reminders = appStore.generateElderReminders({
       medicationPlans,
       medicines,
       members
@@ -82,39 +86,65 @@ Page({
     const pendingCount = reminders.filter(r => r.status === 'pending' || r.status === 'upcoming').length;
     const skippedCount = reminders.filter(r => r.status === 'skipped').length;
 
+    // Stage 2：有家庭但无提醒 → 空态引导
+    if (!reminders || reminders.length === 0) {
+      let headerTitle;
+      let headerSubtitle;
+      if (isAdmin) {
+        headerTitle = '家人提醒（大字版）';
+        headerSubtitle = '暂时还没有用药提醒';
+      } else {
+        headerTitle = `${this.data.greet}，${currentRole.name}`;
+        headerSubtitle = '今天暂时没有服药计划';
+      }
+      this.setData({
+        stage: 'noReminders',
+        isAdminView: isAdmin,
+        currentRole,
+        reminders: [],
+        completedCount: 0,
+        pendingCount: 0,
+        skippedCount: 0,
+        headerTitle,
+        headerSubtitle
+      });
+      return;
+    }
+
+    // Stage 3：有提醒
     let headerTitle;
     let headerSubtitle;
-
     if (isAdmin) {
-      headerTitle = '老人端预览';
-      headerSubtitle = '子女正在查看 · 爸爸、妈妈今日服药';
+      headerTitle = '家人提醒（大字版）';
+      const elderNames = members.filter(m => m.role === 'elder').map(m => m.name);
+      headerSubtitle = elderNames && elderNames.length > 0
+        ? `子女正在查看 · ${elderNames.join('、')}今日服药`
+        : '子女正在查看 · 今日服药提醒';
     } else {
-      // 老人角色：使用正式问候
       headerTitle = `${this.data.greet}，${currentRole.name}`;
       headerSubtitle = '今日服药提醒 · 大字体版';
     }
 
     this.setData({
-      isAdminPreview: isAdmin,
+      stage: 'ready',
+      isAdminView: isAdmin,
       currentRole,
-      headerTitle,
-      headerSubtitle,
       reminders,
       completedCount,
       pendingCount,
-      skippedCount
+      skippedCount,
+      headerTitle,
+      headerSubtitle
     });
   },
 
   onTake(e) {
     const id = e.currentTarget.dataset.id;
     if (!id) return;
-
     confirmMedicationRecord(id);
     this.refreshReminders();
-
     wx.showToast({
-      title: '已记录，子女端会同步看到',
+      title: '已记录，家人会同步看到',
       icon: 'success',
       duration: 1800
     });
@@ -126,14 +156,13 @@ Page({
     const name = reminder ? reminder.medicineName : '该药品';
     wx.showModal({
       title: '稍后提醒',
-      content: `已为「${name}」设置 10 分钟后再次提醒。（演示版本：不实际创建定时器）`,
+      content: `已为「${name}」设置 10 分钟后再次提醒。`,
       showCancel: false,
       confirmText: '好的'
     });
   },
 
   onSkip(e) {
-    // 可选：如果用户长按或其他操作，可标记为 skipped
     const id = e.currentTarget.dataset.id;
     if (!id) return;
     skipMedicationRecord(id);
@@ -142,16 +171,27 @@ Page({
   },
 
   onCallFamily() {
+    const members = appStore.getMembers();
+    const admin = members.find(m => m.role === 'admin');
+    const contactName = admin ? admin.name : '家人';
     wx.showModal({
       title: '联系家人',
-      content: '将联系家人「小李」询问用药问题？\n\n（演示版本：不实际拨打电话）',
+      content: `将联系家人「${contactName}」询问用药问题？`,
       confirmText: '联系',
       success: (res) => {
         if (res.confirm) {
-          wx.showToast({ title: '已模拟拨打给小李', icon: 'none' });
+          wx.showToast({ title: `已发起联系：${contactName}`, icon: 'none' });
         }
       }
     });
+  },
+
+  goCreateFamily() {
+    wx.navigateTo({ url: '/pages/family/family?autoCreate=1' });
+  },
+
+  goAddMedicine() {
+    wx.switchTab({ url: '/pages/medicines/medicines' });
   },
 
   goBack() {

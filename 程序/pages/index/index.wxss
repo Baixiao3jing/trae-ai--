@@ -13,7 +13,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, #1f5a4d 0%, #2e7d6a 45%, #4db69d 100%);
+  background: var(--gradient-brand);
   z-index: 0;
 }
 
@@ -24,7 +24,7 @@
   right: -80rpx;
   width: 400rpx;
   height: 400rpx;
-  background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
+  background: var(--gradient-hero-glow);
   border-radius: 50%;
 }
 
@@ -134,7 +134,7 @@
 
 .quick-item {
   background: var(--surface);
-  border-radius: 20rpx;
+  border-radius: var(--radius-card);
   padding: 28rpx 12rpx;
   display: flex;
   flex-direction: column;
@@ -153,17 +153,17 @@
 .quick-icon {
   width: 80rpx;
   height: 80rpx;
-  border-radius: 20rpx;
+  border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 40rpx;
 }
 
-.quick-add .quick-icon    { background: linear-gradient(135deg, #4db69d, #2e7d6a); }
-.quick-box .quick-icon    { background: linear-gradient(135deg, #5dade2, #3498db); }
-.quick-family .quick-icon { background: linear-gradient(135deg, #f4a896, #e07a5f); }
-.quick-elder .quick-icon  { background: linear-gradient(135deg, #f9d77e, #f39c12); }
+.quick-add .quick-icon    { background: var(--gradient-primary-action); }
+.quick-box .quick-icon    { background: var(--gradient-info); }
+.quick-family .quick-icon { background: var(--gradient-family); }
+.quick-elder .quick-icon  { background: linear-gradient(135deg, #f9d77e, var(--color-warning-500)); }
 
 .quick-label {
   font-size: 24rpx;
@@ -240,9 +240,9 @@
 
 /* 温馨提示 */
 .tip-box {
-  background: linear-gradient(135deg, #eafaf1, #f7faf8);
+  background: var(--gradient-success);
   border: 1rpx solid #c8e5d7;
-  border-radius: 20rpx;
+  border-radius: var(--radius-card);
   padding: 24rpx;
   display: flex;
   gap: 20rpx;
@@ -278,9 +278,9 @@
 /* 同步提示框（第四阶段新增） */
 .sync-tip-box {
   margin-bottom: 28rpx;
-  background: linear-gradient(135deg, #eef5f1, #ffffff);
+  background: var(--gradient-brand-soft);
   border: 1rpx solid #a9d5bd;
-  border-radius: 20rpx;
+  border-radius: var(--radius-card);
   padding: 20rpx 24rpx;
   display: flex;
   gap: 18rpx;
@@ -302,11 +302,107 @@
 .sync-tip-title {
   font-size: 26rpx;
   font-weight: 700;
-  color: #276754;
+  color: var(--primary-dark);
   margin-bottom: 4rpx;
 }
 .sync-tip-desc {
   font-size: 24rpx;
-  color: #4a655e;
+  color: var(--text-light);
   line-height: 1.55;
+}
+
+/* ---------- 空状态引导：无家庭 & 空药箱 ---------- */
+.hero-inner-empty {
+  padding: 24rpx 12rpx 8rpx;
+  text-align: center;
+}
+.empty-hero-icon {
+  font-size: 96rpx;
+  margin-bottom: 16rpx;
+}
+.empty-hero-title {
+  font-size: 44rpx;
+  font-weight: 800;
+  line-height: 1.3;
+  margin-bottom: 14rpx;
+}
+.empty-hero-desc {
+  font-size: 26rpx;
+  opacity: 0.9;
+  line-height: 1.7;
+  padding: 0 24rpx;
+  margin-bottom: 32rpx;
+}
+.empty-hero-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+  align-items: center;
+  justify-content: center;
+}
+.btn-primary,
+.btn-secondary {
+  min-width: 440rpx;
+  max-width: 82%;
+  padding: 22rpx 40rpx;
+  border-radius: var(--radius-pill);
+  text-align: center;
+  font-size: 30rpx;
+  font-weight: 700;
+  box-sizing: border-box;
+}
+.btn-primary {
+  background: #ffffff;
+  color: #1f5a4d;
+  box-shadow: 0 10rpx 22rpx rgba(0, 0, 0, 0.08);
+}
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.14);
+  color: #ffffff;
+  border: 1rpx solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(10rpx);
+}
+.btn-primary:active {
+  transform: scale(0.98);
+  background: #f2faf7;
+}
+.btn-secondary:active {
+  transform: scale(0.98);
+  background: rgba(255, 255, 255, 0.22);
+}
+/* 空药箱专用空态样式 */
+.empty-empty-state {
+  background: var(--surface);
+  border: 1rpx dashed #b4d9c9;
+  border-radius: var(--radius-card);
+  padding: 56rpx 32rpx 44rpx;
+  text-align: center;
+}
+.empty-empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 12rpx;
+}
+.empty-empty-title {
+  font-size: 34rpx;
+  font-weight: 800;
+  color: var(--text);
+  margin-bottom: 10rpx;
+}
+.empty-empty-desc {
+  font-size: 26rpx;
+  color: var(--text-light);
+  line-height: 1.7;
+  margin-bottom: 28rpx;
+  padding: 0 16rpx;
+}
+/* 空态按钮在白底容器里，颜色反一下 */
+.empty-empty-state .btn-primary {
+  background: var(--gradient-primary-action);
+  color: #ffffff;
+}
+.empty-empty-state .btn-secondary {
+  background: #f4fbf8;
+  color: #1f5a4d;
+  border: 1rpx solid #b4d9c9;
+  backdrop-filter: none;
 }

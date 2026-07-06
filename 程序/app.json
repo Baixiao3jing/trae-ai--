@@ -43,6 +43,11 @@
       }
     ]
   },
+  "permission": {
+    "scope.camera": {
+      "desc": "用于扫描药盒条码和拍摄药盒有效期信息"
+    }
+  },
   "style": "v2",
   "sitemapLocation": "sitemap.json",
   "lazyCodeLoading": "requiredComponents"

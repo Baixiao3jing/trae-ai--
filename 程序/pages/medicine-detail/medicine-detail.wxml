@@ -1,5 +1,23 @@
-<!--pages/medicine-detail/medicine-detail.wxml  第二阶段：正式主档 + 多批次 + 汇总 + 安全提示-->
-<view class="page" wx:if="{{medicine}}">
+<!--pages/medicine-detail/medicine-detail.wxml  第六阶段：真实数据 + 空态处理-->
+<view class="empty-page" wx:if="{{noFamily}}">
+  <view class="empty-card">
+    <view class="empty-icon">🏠</view>
+    <view class="empty-title">请先创建家庭药箱</view>
+    <view class="empty-desc">创建家庭后才能查看药品详情。</view>
+    <view class="btn btn-primary btn-block" bindtap="goCreateFamily">去创建家庭</view>
+  </view>
+</view>
+
+<view class="empty-page" wx:elif="{{notFound}}">
+  <view class="empty-card">
+    <view class="empty-icon">📭</view>
+    <view class="empty-title">未找到该药品</view>
+    <view class="empty-desc">可能已被删除，或需要先重置本地数据后再查看。</view>
+    <view class="btn btn-primary btn-block" bindtap="goBackMedicines">返回药箱</view>
+  </view>
+</view>
+
+<view class="page" wx:elif="{{medicine}}">
 
   <!-- 顶部药品卡片 -->
   <view class="hero">
@@ -198,8 +216,7 @@
             <view class="batch-progress">
               <view
                 class="batch-progress-bar"
-                style="width: {{item.remainPercent}}%;
-                       background: {{item.remainPercent < 30 ? '#e74c3c' : '#2e7d6a'}};"
+                style="{{item.progressStyle}}"
               ></view>
             </view>
           </view>
@@ -223,7 +240,7 @@
             </view>
           </view>
 
-          <!-- 批次操作按钮（模拟） -->
+          <!-- 批次操作按钮 -->
           <view class="batch-op-row">
             <view class="batch-op batch-op-edit" data-batch="{{item}}" bindtap="goEditBatch">编辑批次</view>
             <view class="batch-op batch-op-disable" data-batch="{{item}}" bindtap="goDisableBatch">

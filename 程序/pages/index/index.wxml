@@ -1,118 +1,196 @@
 <!--pages/index/index.wxml-->
 <view class="page">
-  <!-- 顶部家庭栏 -->
-  <view class="hero">
-    <view class="hero-bg"></view>
-    <view class="hero-inner">
-      <view class="hero-top">
-        <view class="hero-family">
-          <view class="hero-family-icon">🏠</view>
-          <view>
-            <view class="hero-family-name">{{family.name}}</view>
-            <view class="hero-family-sub">管理员 · {{user.name}}（{{user.roleLabel}}）</view>
+  <!-- ===== 空家庭阶段：引导创建家庭 ===== -->
+  <block wx:if="{{stage === 'noFamily'}}">
+    <view class="hero hero-empty">
+      <view class="hero-bg"></view>
+      <view class="hero-inner hero-inner-empty">
+        <view class="empty-hero-icon">🏠</view>
+        <view class="empty-hero-title">先创建一个家庭药箱</view>
+        <view class="empty-hero-desc">创建家庭后，你可以录入药品、管理有效期，并邀请家人一起查看。</view>
+        <view class="empty-hero-btns">
+          <view class="btn-primary" bindtap="onCreateFamily">创建家庭</view>
+          <view class="btn-secondary" bindtap="onLearnMore">了解药无忧能做什么</view>
+        </view>
+      </view>
+    </view>
+    <view class="container">
+      <view class="tip-box mt-24">
+        <view class="tip-icon">💚</view>
+        <view class="tip-content">
+          <view class="tip-title">药无忧 · 小贴士</view>
+          <view class="tip-desc">药无忧只做家庭药品库存、有效期、提醒和补货管理，不提供医疗诊断和用药建议。</view>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <!-- ===== 有家庭、无药品阶段：空药箱引导 ===== -->
+  <block wx:elif="{{stage === 'emptyMedicine'}}">
+    <view class="hero">
+      <view class="hero-bg"></view>
+      <view class="hero-inner">
+        <view class="hero-top">
+          <view class="hero-family">
+            <view class="hero-family-icon">🏠</view>
+            <view>
+              <view class="hero-family-name">{{family.name}}</view>
+              <view class="hero-family-sub">管理员 · {{user.name}}</view>
+            </view>
+          </view>
+          <view class="hero-date">
+            <text class="hero-date-icon">📅</text>
+            <text>今日概览</text>
           </view>
         </view>
-        <view class="hero-date">
-          <text class="hero-date-icon">📅</text>
-          <text>今日概览</text>
-        </view>
-      </view>
-
-      <!-- 数据卡片 -->
-      <view class="stats">
-        <view class="stat-item">
-          <view class="stat-num">{{dashboard.medicineCount}}</view>
-          <view class="stat-label">药品总数</view>
-        </view>
-        <view class="stat-divider"></view>
-        <view class="stat-item">
-          <view class="stat-num text-warning">{{dashboard.nearExpireCount}}</view>
-          <view class="stat-label">临期批次</view>
-        </view>
-        <view class="stat-divider"></view>
-        <view class="stat-item">
-          <view class="stat-num text-danger">{{dashboard.expiredCount}}</view>
-          <view class="stat-label">已过期</view>
-        </view>
-        <view class="stat-divider"></view>
-        <view class="stat-item">
-          <view class="stat-num text-info">{{dashboard.lowStockCount}}</view>
-          <view class="stat-label">库存不足</view>
-        </view>
-        <view class="stat-divider"></view>
-        <view class="stat-item">
-          <view class="stat-num text-accent">{{dashboard.todayUnconfirmedCount}}</view>
-          <view class="stat-label">待确认</view>
-        </view>
-      </view>
-    </view>
-  </view>
-
-  <view class="container">
-    <!-- 角色同步小提示（第四阶段新增） -->
-    <view class="sync-tip-box">
-      <view class="sync-tip-icon">🔁</view>
-      <view class="sync-tip-content">
-        <view class="sync-tip-title">演示同步提示</view>
-        <view class="sync-tip-desc">{{syncTip}}</view>
       </view>
     </view>
 
-    <!-- 快捷入口 -->
-    <view class="section-title">快捷操作</view>
-    <view class="quick-grid">
-      <view class="quick-item quick-add" bindtap="goAddMedicine">
-        <view class="quick-icon">➕</view>
-        <view class="quick-label">添加药品</view>
+    <view class="container">
+      <view class="empty-empty-state">
+        <view class="empty-empty-icon">💊</view>
+        <view class="empty-empty-title">药箱还是空的</view>
+        <view class="empty-empty-desc">先录入一盒药，系统会帮你记录有效期、批次和剩余数量。</view>
+        <view class="empty-hero-btns">
+          <view class="btn-primary" bindtap="goAddMedicine">添加药品</view>
+          <view class="btn-secondary" bindtap="onInviteFromEmpty">邀请家人</view>
+        </view>
       </view>
-      <view class="quick-item quick-box" bindtap="goMedicines">
-        <view class="quick-icon">💊</view>
-        <view class="quick-label">查看药箱</view>
+
+      <view class="quick-grid mt-32">
+        <view class="quick-item quick-add" bindtap="goAddMedicine">
+          <view class="quick-icon">➕</view>
+          <view class="quick-label">添加药品</view>
+        </view>
+        <view class="quick-item quick-family" bindtap="goFamily">
+          <view class="quick-icon">👨‍👩‍👧</view>
+          <view class="quick-label">家庭管理</view>
+        </view>
+        <view class="quick-item quick-elder" bindtap="goElder">
+          <view class="quick-icon">👴</view>
+          <view class="quick-label">家人提醒</view>
+        </view>
       </view>
-      <view class="quick-item quick-family" bindtap="goFamily">
-        <view class="quick-icon">👨‍👩‍👧</view>
-        <view class="quick-label">家庭管理</view>
-      </view>
-      <view class="quick-item quick-elder" bindtap="goElder">
-        <view class="quick-icon">👴</view>
-        <view class="quick-label">老人端预览</view>
+
+      <view class="tip-box mt-32">
+        <view class="tip-icon">💚</view>
+        <view class="tip-content">
+          <view class="tip-title">药无忧 · 小贴士</view>
+          <view class="tip-desc">药无忧只做家庭药品库存、有效期、提醒和补货管理，不提供医疗诊断和用药建议。</view>
+        </view>
       </view>
     </view>
+  </block>
 
-    <!-- 今日关注 -->
-    <view class="section-title mt-32">今日关注</view>
-    <block wx:if="{{todayList.length > 0}}">
-      <view
-        class="attention-item"
-        wx:for="{{todayList}}"
-        wx:key="id"
-        data-item="{{item}}"
-        bindtap="onAttentionTap"
-        style="background: {{item.bgColor}}; border-left: 6rpx solid {{item.borderColor}};"
-      >
-        <view class="attention-icon">{{item.icon}}</view>
-        <view class="attention-content">
-          <view class="attention-header">
-            <text class="attention-type">{{item.typeLabel}}</text>
-            <text class="attention-title">{{item.title}}</text>
+  <!-- ===== 有数据阶段：统计 + 快捷操作 + 今日关注 ===== -->
+  <block wx:else>
+    <view class="hero">
+      <view class="hero-bg"></view>
+      <view class="hero-inner">
+        <view class="hero-top">
+          <view class="hero-family">
+            <view class="hero-family-icon">🏠</view>
+            <view>
+              <view class="hero-family-name">{{family.name}}</view>
+              <view class="hero-family-sub">管理员 · {{user.name}}</view>
+            </view>
           </view>
-          <view class="attention-desc">{{item.desc}}</view>
+          <view class="hero-date">
+            <text class="hero-date-icon">📅</text>
+            <text>今日概览</text>
+          </view>
         </view>
-        <view class="attention-arrow">›</view>
+        <view class="stats">
+          <view class="stat-item">
+            <view class="stat-num">{{dashboard.medicineCount}}</view>
+            <view class="stat-label">药品总数</view>
+          </view>
+          <view class="stat-divider"></view>
+          <view class="stat-item">
+            <view class="stat-num text-warning">{{dashboard.nearExpireCount}}</view>
+            <view class="stat-label">临期批次</view>
+          </view>
+          <view class="stat-divider"></view>
+          <view class="stat-item">
+            <view class="stat-num text-danger">{{dashboard.expiredCount}}</view>
+            <view class="stat-label">已过期</view>
+          </view>
+          <view class="stat-divider"></view>
+          <view class="stat-item">
+            <view class="stat-num text-info">{{dashboard.lowStockCount}}</view>
+            <view class="stat-label">库存不足</view>
+          </view>
+          <view class="stat-divider"></view>
+          <view class="stat-item">
+            <view class="stat-num text-accent">{{dashboard.todayUnconfirmedCount}}</view>
+            <view class="stat-label">待确认</view>
+          </view>
+        </view>
       </view>
-    </block>
-    <view wx:else class="empty">
-      <view class="empty-icon">✅</view>
-      <view>今日无需要关注事项</view>
     </view>
 
-    <!-- 温馨提示 -->
-    <view class="tip-box mt-32">
-      <view class="tip-icon">💚</view>
-      <view class="tip-content">
-        <view class="tip-title">药无忧 · 小贴士</view>
-        <view class="tip-desc">本产品仅用于家庭药品库存、有效期、服用提醒与补货管理，不提供用药建议，具体请遵医嘱。</view>
+    <view class="container">
+      <view class="sync-tip-box">
+        <view class="sync-tip-icon">🔁</view>
+        <view class="sync-tip-content">
+          <view class="sync-tip-title">同步提示</view>
+          <view class="sync-tip-desc">{{syncTip}}</view>
+        </view>
+      </view>
+
+      <view class="section-title">快捷操作</view>
+      <view class="quick-grid">
+        <view class="quick-item quick-add" bindtap="goAddMedicine">
+          <view class="quick-icon">➕</view>
+          <view class="quick-label">添加药品</view>
+        </view>
+        <view class="quick-item quick-box" bindtap="goMedicines">
+          <view class="quick-icon">💊</view>
+          <view class="quick-label">查看药箱</view>
+        </view>
+        <view class="quick-item quick-family" bindtap="goFamily">
+          <view class="quick-icon">👨‍👩‍👧</view>
+          <view class="quick-label">家庭管理</view>
+        </view>
+        <view class="quick-item quick-elder" bindtap="goElder">
+          <view class="quick-icon">👴</view>
+          <view class="quick-label">家人提醒</view>
+        </view>
+      </view>
+
+      <view class="section-title mt-32">今日关注</view>
+      <block wx:if="{{todayList.length > 0}}">
+        <view
+          class="attention-item"
+          wx:for="{{todayList}}"
+          wx:key="id"
+          data-item="{{item}}"
+          bindtap="onAttentionTap"
+          style="background: {{item.bgColor}}; border-left: 6rpx solid {{item.borderColor}};"
+        >
+          <view class="attention-icon">{{item.icon}}</view>
+          <view class="attention-content">
+            <view class="attention-header">
+              <text class="attention-type">{{item.typeLabel}}</text>
+              <text class="attention-title">{{item.title}}</text>
+            </view>
+            <view class="attention-desc">{{item.desc}}</view>
+          </view>
+          <view class="attention-arrow">›</view>
+        </view>
+      </block>
+      <view wx:else class="empty">
+        <view class="empty-icon">✅</view>
+        <view>今日无需要关注事项</view>
+      </view>
+
+      <view class="tip-box mt-32">
+        <view class="tip-icon">💚</view>
+        <view class="tip-content">
+          <view class="tip-title">药无忧 · 小贴士</view>
+          <view class="tip-desc">药无忧只做家庭药品库存、有效期、提醒和补货管理，不提供医疗诊断和用药建议。</view>
+        </view>
       </view>
     </view>
-  </view>
+  </block>
 </view>

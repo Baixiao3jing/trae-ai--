@@ -1,110 +1,196 @@
-<!--pages/settings/settings.wxml-->
+<!--pages/settings/settings.wxml  第六阶段：区分有家庭/无家庭-->
 <view class="page">
-  <!-- 用户头部 -->
-  <view class="user-header">
-    <view class="user-bg"></view>
-    <view class="user-inner">
-      <view class="user-row">
-        <view class="user-avatar">{{user.avatar}}</view>
-        <view class="user-info">
-          <view class="user-name">
-            {{user.name}}
-            <text class="tag tag-success" style="margin-left: 12rpx;">{{user.roleLabel}}</text>
-          </view>
-          <view class="user-family">
-            <text class="user-family-icon">🏠</text>
-            {{family.name}}
+  <!-- ===== 阶段 A：未创建家庭 ===== -->
+  <block wx:if="{{stage === 'noFamily'}}">
+    <view class="user-header">
+      <view class="user-bg"></view>
+      <view class="user-inner">
+        <view class="user-row">
+          <view class="user-avatar">{{user.avatar || '👤'}}</view>
+          <view class="user-info">
+            <view class="user-name">
+              {{user.name || '当前用户'}}
+              <text class="tag tag-success" style="margin-left: 12rpx;">{{user.role === 'admin' ? '管理员' : '成员'}}</text>
+            </view>
+            <view class="user-family user-family-empty">
+              <text class="user-family-icon">🏠</text>
+              还没有家庭药箱
+            </view>
           </view>
         </view>
-      </view>
 
-      <!-- 第四阶段新增：当前演示身份 -->
-      <view class="current-role-box" wx:if="{{currentRole}}">
-        <view class="current-role-label">当前演示身份</view>
-        <view class="current-role-content">
-          <text class="current-role-avatar">{{currentRole.avatar}}</text>
-          <text class="current-role-name">{{currentRole.name}}</text>
-          <text class="current-role-divider">/</text>
-          <text class="current-role-tag">{{currentRole.roleLabel}}</text>
+        <!-- 入门 CTA 卡片 -->
+        <view class="hero-cta-card" bindtap="goCreateFamily">
+          <view class="hero-cta-icon">✨</view>
+          <view class="hero-cta-texts">
+            <view class="hero-cta-title">创建你的第一个家庭药箱</view>
+            <view class="hero-cta-sub">录入药品 · 管理有效期 · 邀请家人一起看</view>
+          </view>
+          <view class="hero-cta-arrow">›</view>
         </view>
       </view>
+    </view>
 
-      <!-- 成员预览 -->
-      <view class="members-preview" bindtap="onMenuTap" data-key="family">
-        <view class="members-avatars">
+    <view class="container">
+      <!-- 菜单分组：只显示入门 & 隐私 & 开发工具 -->
+      <view class="menu-group" wx:for="{{menuGroups}}" wx:key="title" wx:for-item="group" wx:for-index="gIdx">
+        <view class="menu-group-title">{{group.title}}</view>
+        <view class="menu-card">
           <view
-            class="mini-avatar"
-            wx:for="{{members}}"
-            wx:key="id"
-            style="z-index: {{members.length - index}};"
+            class="menu-item"
+            wx:for="{{group.items}}"
+            wx:key="key"
+            wx:for-item="item"
+            wx:for-index="iIdx"
+            data-key="{{item.key}}"
+            bindtap="onMenuTap"
           >
-            {{item.avatar}}
+            <view class="menu-icon" style="background: {{item.bg}}; color: {{item.color}};">
+              {{item.icon}}
+            </view>
+            <view class="menu-main">
+              <view class="menu-label">{{item.label}}</view>
+              <view class="menu-desc">{{item.desc}}</view>
+            </view>
+            <view class="menu-arrow">›</view>
+            <view wx:if="{{iIdx < group.items.length - 1}}" class="menu-line"></view>
           </view>
         </view>
-        <view class="members-info">
-          <view class="members-count">{{members.length}} 位家庭成员</view>
-          <view class="members-sub">点击进入家庭管理 ›</view>
-        </view>
+      </view>
+
+      <view class="footer-note">
+        <view class="footer-logo">💊 药无忧</view>
+        <view class="footer-ver">家庭药箱管理</view>
+        <view class="footer-tip">药无忧只做家庭药品库存、有效期、提醒和补货管理，不提供医疗诊断和用药建议。</view>
       </view>
     </view>
-  </view>
+  </block>
 
-  <view class="container">
-    <!-- 第四阶段新增：演示角色切换区域 -->
-    <view class="demo-section">
-      <view class="demo-section-title">
-        <text class="demo-section-icon">🎭</text>
-        <text>演示角色切换</text>
-      </view>
-      <view class="demo-section-sub">切换视角，体验子女端和老人端的不同界面（比赛演示用）</view>
-      <view class="role-grid">
-        <view
-          wx:for="{{roleOptions}}"
-          wx:key="id"
-          class="role-card {{item.isActive ? 'is-active' : ''}}"
-          bindtap="onRoleChange"
-          data-user-id="{{item.id}}"
-        >
-          <view class="role-card-avatar">{{item.avatar}}</view>
-          <view class="role-card-name">{{item.name}}</view>
-          <view class="role-card-tag">{{item.roleLabel}}</view>
-          <view class="role-card-relation" wx:if="{{item.relation}}">{{item.relation}}</view>
-          <view class="role-card-check" wx:if="{{item.isActive}}">✓ 当前</view>
-        </view>
-      </view>
-    </view>
-
-    <!-- 菜单分组 -->
-    <view class="menu-group" wx:for="{{menuGroups}}" wx:key="title" wx:for-item="group" wx:for-index="gIdx">
-      <view class="menu-group-title">{{group.title}}</view>
-      <view class="menu-card">
-        <view
-          class="menu-item"
-          wx:for="{{group.items}}"
-          wx:key="key"
-          wx:for-item="item"
-          wx:for-index="iIdx"
-          data-key="{{item.key}}"
-          bindtap="onMenuTap"
-        >
-          <view class="menu-icon" style="background: {{item.bg}}; color: {{item.color}};">
-            {{item.icon}}
+  <!-- ===== 阶段 B：已有家庭 ===== -->
+  <block wx:else>
+    <!-- 用户头部 -->
+    <view class="user-header">
+      <view class="user-bg"></view>
+      <view class="user-inner">
+        <view class="user-row">
+          <view class="user-avatar">{{user.avatar || '👤'}}</view>
+          <view class="user-info">
+            <view class="user-name">
+              {{user.name || '当前用户'}}
+              <text class="tag tag-success" style="margin-left: 12rpx;">{{user.role === 'admin' ? '管理员' : '成员'}}</text>
+            </view>
+            <view class="user-family">
+              <text class="user-family-icon">🏠</text>
+              {{family.name}}
+            </view>
           </view>
-          <view class="menu-main">
-            <view class="menu-label">{{item.label}}</view>
-            <view class="menu-desc">{{item.desc}}</view>
+        </view>
+
+        <!-- 当前登录身份 -->
+        <view class="current-role-box" wx:if="{{currentRole && devToolsVisible}}">
+          <view class="current-role-label">当前身份视角</view>
+          <view class="current-role-content">
+            <text class="current-role-avatar">{{currentRole.avatar || '👤'}}</text>
+            <text class="current-role-name">{{currentRole.name}}</text>
+            <text class="current-role-divider">/</text>
+            <text class="current-role-tag">{{currentRole.roleLabel}}</text>
           </view>
-          <view class="menu-arrow">›</view>
-          <view wx:if="{{iIdx < group.items.length - 1}}" class="menu-line"></view>
+        </view>
+
+        <!-- 成员预览 -->
+        <view class="members-preview" bindtap="onMenuTap" data-key="family">
+          <view class="members-avatars">
+            <view
+              class="mini-avatar"
+              wx:for="{{members}}"
+              wx:key="id"
+              style="z-index: {{members.length - index}};"
+            >
+              {{item.avatar || '👤'}}
+            </view>
+          </view>
+          <view class="members-info">
+            <view class="members-count">{{memberCount}} 位家庭成员</view>
+            <view class="members-sub">点击进入家庭管理 ›</view>
+          </view>
         </view>
       </view>
     </view>
 
-    <!-- 底部版权声明 -->
-    <view class="footer-note">
-      <view class="footer-logo">💊 药无忧</view>
-      <view class="footer-ver">第四阶段 MVP · 版本 v0.4.0</view>
-      <view class="footer-tip">本产品不提供医疗诊断与用药建议</view>
+    <view class="container">
+      <!-- 身份视角切换（仅开发体验模式展示） -->
+      <view class="demo-section" wx:if="{{roleOptions.length > 0 && devToolsVisible}}">
+        <view class="demo-section-title">
+          <text class="demo-section-icon">🎭</text>
+          <text>身份视角切换</text>
+        </view>
+        <view class="demo-section-sub">用于查看不同家人看到的界面</view>
+        <view class="role-grid">
+          <view
+            wx:for="{{roleOptions}}"
+            wx:key="id"
+            class="role-card {{item.isActive ? 'is-active' : ''}}"
+            bindtap="onRoleChange"
+            data-user-id="{{item.id}}"
+          >
+            <view class="role-card-avatar">{{item.avatar || '👤'}}</view>
+            <view class="role-card-name">{{item.name}}</view>
+            <view class="role-card-tag">{{item.roleLabel}}</view>
+            <view class="role-card-relation" wx:if="{{item.relation}}">{{item.relation}}</view>
+            <view class="role-card-check" wx:if="{{item.isActive}}">✓ 当前</view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 数据概览小卡片 -->
+      <view class="stats-mini-row">
+        <view class="stats-mini-item">
+          <view class="stats-mini-num">{{medicineCount}}</view>
+          <view class="stats-mini-label">种药品</view>
+        </view>
+        <view class="stats-mini-item">
+          <view class="stats-mini-num">{{batchCount}}</view>
+          <view class="stats-mini-label">个批次</view>
+        </view>
+        <view class="stats-mini-item">
+          <view class="stats-mini-num">{{memberCount}}</view>
+          <view class="stats-mini-label">位成员</view>
+        </view>
+      </view>
+
+      <!-- 菜单分组 -->
+      <view class="menu-group" wx:for="{{menuGroups}}" wx:key="title" wx:for-item="group" wx:for-index="gIdx">
+        <view class="menu-group-title">{{group.title}}</view>
+        <view class="menu-card">
+          <view
+            class="menu-item"
+            wx:for="{{group.items}}"
+            wx:key="key"
+            wx:for-item="item"
+            wx:for-index="iIdx"
+            data-key="{{item.key}}"
+            bindtap="onMenuTap"
+          >
+            <view class="menu-icon" style="background: {{item.bg}}; color: {{item.color}};">
+              {{item.icon}}
+            </view>
+            <view class="menu-main">
+              <view class="menu-label">{{item.label}}</view>
+              <view class="menu-desc">{{item.desc}}</view>
+            </view>
+            <view class="menu-arrow">›</view>
+            <view wx:if="{{iIdx < group.items.length - 1}}" class="menu-line"></view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 底部版权声明 -->
+      <view class="footer-note">
+        <view class="footer-logo">💊 药无忧</view>
+        <view class="footer-ver">第六阶段 · 真实流程 v0.6.0</view>
+        <view class="footer-tip">药无忧只做家庭药品库存、有效期、提醒和补货管理，不提供医疗诊断和用药建议。</view>
+        <view class="footer-tip-sub" wx:if="{{dataLoadedAt}}">示例数据加载时间：{{dataLoadedAt}}</view>
+      </view>
     </view>
-  </view>
+  </block>
 </view>

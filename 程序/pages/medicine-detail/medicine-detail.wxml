@@ -24,8 +24,12 @@
     <view class="hero-bg"></view>
     <view class="hero-inner">
       <view class="hero-row">
-        <view class="med-big-icon" style="background: rgba(255,255,255,0.2); color: #fff;">
-          💊
+        <view class="med-big-cover">
+          <image wx:if="{{medicine.coverImage}}" class="med-big-cover-img" src="{{medicine.coverImage}}" mode="aspectFill"></image>
+          <view wx:else class="med-big-cover-placeholder">
+            <text>{{medicine.coverText}}</text>
+            <text class="med-big-cover-sub">药品</text>
+          </view>
         </view>
         <view class="hero-main">
           <view class="med-name">{{medicine.name}}</view>
@@ -85,7 +89,7 @@
         </view>
         <view class="info-row">
           <view class="info-label">通用名</view>
-          <view class="info-value">{{medicine.genericName}}</view>
+          <view class="info-value">{{medicine.genericName || medicine.name}}</view>
         </view>
         <view class="info-row">
           <view class="info-label">规格</view>
@@ -93,7 +97,7 @@
         </view>
         <view class="info-row">
           <view class="info-label">生产厂家</view>
-          <view class="info-value">{{medicine.manufacturer}}</view>
+          <view class="info-value">{{medicine.manufacturer || '未填写'}}</view>
         </view>
         <view class="info-row">
           <view class="info-label">类别</view>
@@ -103,7 +107,7 @@
         </view>
         <view class="info-row">
           <view class="info-label">商品条码</view>
-          <view class="info-value mono">{{medicine.barcode}}</view>
+          <view class="info-value mono">{{medicine.barcode || '未填写'}}</view>
         </view>
         <view class="info-row">
           <view class="info-label">适用成员</view>
@@ -242,8 +246,8 @@
 
           <!-- 批次操作按钮 -->
           <view class="batch-op-row">
-            <view class="batch-op batch-op-edit" data-batch="{{item}}" bindtap="goEditBatch">编辑批次</view>
-            <view class="batch-op batch-op-disable" data-batch="{{item}}" bindtap="goDisableBatch">
+            <view class="batch-op batch-op-edit" data-id="{{item.id}}" bindtap="goEditBatch">编辑批次</view>
+            <view class="batch-op batch-op-disable" data-id="{{item.id}}" bindtap="goDisableBatch">
               {{item.disabled ? '重新启用' : '停用批次'}}
             </view>
           </view>
@@ -300,5 +304,155 @@
       </view>
     </block>
 
+  </view>
+
+  <!-- 药品主档编辑弹层 -->
+  <view wx:if="{{showMasterEditor}}" class="editor-mask" bindtap="closeMasterEditor">
+    <view class="editor-panel" catchtap="noop">
+      <view class="editor-head">
+        <view>
+          <view class="editor-title">编辑药品主档</view>
+          <view class="editor-subtitle">保存后药箱列表和首页统计会同步刷新</view>
+        </view>
+        <view class="editor-close" bindtap="closeMasterEditor">×</view>
+      </view>
+
+      <view class="cover-editor">
+        <view class="cover-preview" bindtap="chooseMasterCover">
+          <image wx:if="{{masterDraft.coverImage}}" class="cover-preview-img" src="{{masterDraft.coverImage}}" mode="aspectFill"></image>
+          <view wx:else class="cover-preview-empty">
+            <text class="cover-preview-plus">+</text>
+            <text>药盒照片</text>
+          </view>
+        </view>
+        <view class="cover-actions">
+          <view class="app-form-helper">图片仅用于家庭识别药品，不作为医疗判断依据。</view>
+          <view class="cover-action-row">
+            <button class="mini-outline" bindtap="chooseMasterCover">重选照片</button>
+            <button wx:if="{{masterDraft.coverImage}}" class="mini-danger" bindtap="removeMasterCover">移除</button>
+          </view>
+        </view>
+      </view>
+
+      <view class="app-form-field">
+        <view class="app-form-label"><text class="app-form-required">*</text> 药品名称</view>
+        <input class="app-form-input" value="{{masterDraft.name}}" data-field="name" bindinput="onMasterInput" placeholder="例如：清火片" />
+      </view>
+      <view class="app-form-field">
+        <view class="app-form-label"><text class="app-form-required">*</text> 规格</view>
+        <input class="app-form-input" value="{{masterDraft.specification}}" data-field="specification" bindinput="onMasterInput" placeholder="例如：40片/盒" />
+      </view>
+      <view class="app-form-field">
+        <view class="app-form-label"><text class="app-form-required">*</text> 类别</view>
+        <view class="app-option-row">
+          <view
+            wx:for="{{categoryOptions}}"
+            wx:key="*this"
+            class="app-option-chip {{masterDraft.category === item ? 'app-option-chip-active' : ''}}"
+            data-value="{{item}}"
+            bindtap="chooseMasterCategory"
+          >{{item}}</view>
+        </view>
+        <input class="app-form-input mt-12" value="{{masterDraft.category}}" data-field="category" bindinput="onMasterInput" placeholder="也可以手动输入类别" />
+      </view>
+      <view class="app-form-field">
+        <view class="app-form-label">厂家</view>
+        <input class="app-form-input" value="{{masterDraft.manufacturer}}" data-field="manufacturer" bindinput="onMasterInput" placeholder="例如：某某制药有限公司" />
+      </view>
+      <view class="app-form-field">
+        <view class="app-form-label">条码</view>
+        <input class="app-form-input" value="{{masterDraft.barcode}}" data-field="barcode" bindinput="onMasterInput" placeholder="可扫码后自动带入，也可手动填写" />
+      </view>
+      <view class="app-form-field">
+        <view class="app-form-label"><text class="app-form-required">*</text> 使用人</view>
+        <input class="app-form-input" value="{{masterDraft.targetMemberLabel}}" data-field="targetMemberLabel" bindinput="onMasterInput" placeholder="例如：全家备用、爸爸、李鑫" />
+      </view>
+      <view class="app-form-field">
+        <view class="app-form-label"><text class="app-form-required">*</text> 存放位置</view>
+        <view class="app-option-row">
+          <view
+            wx:for="{{locationOptions}}"
+            wx:key="*this"
+            class="app-option-chip {{masterDraft.storageLocation === item ? 'app-option-chip-active' : ''}}"
+            data-value="{{item}}"
+            bindtap="chooseMasterLocation"
+          >{{item}}</view>
+        </view>
+        <input class="app-form-input mt-12" value="{{masterDraft.storageLocation}}" data-field="storageLocation" bindinput="onMasterInput" placeholder="也可以手动输入位置" />
+      </view>
+      <view wx:if="{{masterError}}" class="app-form-error">{{masterError}}</view>
+      <view class="editor-actions">
+        <button class="editor-btn editor-btn-ghost" bindtap="closeMasterEditor">取消</button>
+        <button class="editor-btn editor-btn-primary" bindtap="saveMasterDraft">保存主档</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 批次新增/编辑弹层 -->
+  <view wx:if="{{showBatchEditor}}" class="editor-mask" bindtap="closeBatchEditor">
+    <view class="editor-panel" catchtap="noop">
+      <view class="editor-head">
+        <view>
+          <view class="editor-title">{{batchEditorMode === 'edit' ? '编辑批次' : '新增批次'}}</view>
+          <view class="editor-subtitle">批次变化会影响库存、临期和首页统计</view>
+        </view>
+        <view class="editor-close" bindtap="closeBatchEditor">×</view>
+      </view>
+
+      <view class="app-form-field">
+        <view class="app-form-label"><text class="app-form-required">*</text> 有效期</view>
+        <picker mode="date" value="{{batchDraft.expireDate}}" data-field="expireDate" bindchange="onBatchDateChange">
+          <view class="app-form-picker">{{batchDraft.expireDate || '请选择有效期'}}</view>
+        </picker>
+      </view>
+      <view class="form-two-col">
+        <view class="app-form-field">
+          <view class="app-form-label"><text class="app-form-required">*</text> 总数量</view>
+          <input class="app-form-input" type="digit" value="{{batchDraft.totalQuantity}}" data-field="totalQuantity" bindinput="onBatchInput" placeholder="例如：20" />
+        </view>
+        <view class="app-form-field">
+          <view class="app-form-label"><text class="app-form-required">*</text> 剩余数量</view>
+          <input class="app-form-input" type="digit" value="{{batchDraft.remainingQuantity}}" data-field="remainingQuantity" bindinput="onBatchInput" placeholder="例如：18" />
+        </view>
+      </view>
+      <view class="app-form-field">
+        <view class="app-form-label"><text class="app-form-required">*</text> 单位</view>
+        <view class="app-option-row">
+          <view
+            wx:for="{{unitOptions}}"
+            wx:key="*this"
+            class="app-option-chip {{batchDraft.unit === item ? 'app-option-chip-active' : ''}}"
+            data-value="{{item}}"
+            bindtap="chooseBatchUnit"
+          >{{item}}</view>
+        </view>
+        <input class="app-form-input mt-12" value="{{batchDraft.unit}}" data-field="unit" bindinput="onBatchInput" placeholder="也可以手动输入单位" />
+      </view>
+      <view class="form-two-col">
+        <view class="app-form-field">
+          <view class="app-form-label">批号</view>
+          <input class="app-form-input" value="{{batchDraft.batchNo}}" data-field="batchNo" bindinput="onBatchInput" placeholder="不填自动生成" />
+        </view>
+        <view class="app-form-field">
+          <view class="app-form-label">生产日期</view>
+          <picker mode="date" value="{{batchDraft.productionDate}}" data-field="productionDate" bindchange="onBatchDateChange">
+            <view class="app-form-picker">{{batchDraft.productionDate || '可选'}}</view>
+          </picker>
+        </view>
+      </view>
+      <view class="app-form-field">
+        <view class="app-form-label">备注</view>
+        <textarea class="app-form-textarea compact-textarea" value="{{batchDraft.note}}" data-field="note" bindinput="onBatchInput" placeholder="例如：外盒已拆、药板剩余数量已核对"></textarea>
+      </view>
+      <view class="app-form-field">
+        <view class="app-form-label">日期来源说明</view>
+        <input class="app-form-input" value="{{batchDraft.imageSourceNote}}" data-field="imageSourceNote" bindinput="onBatchInput" placeholder="例如：手动查看外盒喷码" />
+      </view>
+      <view wx:if="{{batchError}}" class="app-form-error">{{batchError}}</view>
+      <view class="editor-actions">
+        <button class="editor-btn editor-btn-ghost" bindtap="closeBatchEditor">取消</button>
+        <button class="editor-btn editor-btn-primary" bindtap="saveBatchDraft">保存批次</button>
+      </view>
+    </view>
   </view>
 </view>

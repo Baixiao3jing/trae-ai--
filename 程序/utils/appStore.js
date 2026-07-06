@@ -63,6 +63,24 @@ function _medicineCoverText(medicine) {
   const category = String((medicine && medicine.category) || '').trim();
   return category ? category.slice(0, 1) : '药';
 }
+function _addAccessLog(state, { action, target, actionType }) {
+  state.accessLogs = state.accessLogs || [];
+  state.accessLogs.unshift({
+    id: 'LOG-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+    time: _nowDateTimeStr(),
+    action,
+    target,
+    by: (state.currentUser && state.currentUser.name) || '当前用户',
+    actionType
+  });
+}
+function _normalizeQuantity(value, label, allowZero) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0 || (!allowZero && n <= 0)) {
+    throw new Error(`${label}必须${allowZero ? '不小于 0' : '大于 0'}`);
+  }
+  return n;
+}
 
 // ==================== 空状态初始值 ====================
 function _initialState() {
@@ -372,6 +390,167 @@ function addMedicineAndBatch(medicineForm, batchForm) {
   return { medicineId: targetMed.id, isNewMedicine: isNew, newBatchId: newBatch.id };
 }
 
+function updateMedicine(medicineId, patch) {
+  const s = readAppState();
+  if (!s.currentFamily) throw new Error('请先创建家庭');
+  const target = (s.medicines || []).find(m => m.id === medicineId);
+  if (!target) throw new Error('未找到该药品');
+
+  const p = patch || {};
+  const required = [
+    ['name', '药品名称'],
+    ['specification', '规格'],
+    ['category', '类别'],
+    ['targetMemberLabel', '使用人'],
+    ['storageLocation', '存放位置']
+  ];
+  required.forEach(([key, label]) => {
+    if (Object.prototype.hasOwnProperty.call(p, key) && !String(p[key] || '').trim()) {
+      throw new Error(`${label}不能为空`);
+    }
+  });
+
+  const allowed = [
+    'name', 'shortName', 'genericName', 'specification', 'category', 'manufacturer',
+    'barcode', 'barcodeAliases', 'targetMemberIds', 'targetMemberLabel',
+    'customTargetMemberName', 'storageLocation', 'coverImage', 'coverSource'
+  ];
+  allowed.forEach(k => {
+    if (!Object.prototype.hasOwnProperty.call(p, k)) return;
+    if (k === 'barcode') {
+      target.barcode = _normalizeBarcode(p.barcode);
+      if (target.barcode) {
+        target.barcodeAliases = Array.from(new Set((target.barcodeAliases || []).concat([target.barcode]).map(_normalizeBarcode).filter(Boolean)));
+      }
+      return;
+    }
+    if (k === 'barcodeAliases') {
+      target.barcodeAliases = Array.from(new Set((p.barcodeAliases || []).map(_normalizeBarcode).filter(Boolean)));
+      return;
+    }
+    if (k === 'targetMemberIds') {
+      target.targetMemberIds = Array.isArray(p.targetMemberIds) ? p.targetMemberIds : [];
+      return;
+    }
+    target[k] = typeof p[k] === 'string' ? p[k].trim() : p[k];
+  });
+  target.shortName = target.shortName || target.name;
+  target.genericName = target.genericName || target.name;
+  target.coverSource = target.coverImage ? (target.coverSource || 'photo') : 'none';
+  target.updatedAt = _nowDateTimeStr();
+  target.updatedBy = s.currentUser.id;
+
+  _addAccessLog(s, {
+    action: '修改药品主档',
+    target: target.name,
+    actionType: 'update'
+  });
+  _writeAppState(s);
+  return _clone(target);
+}
+
+function _normalizeBatchForm(batchForm, existing) {
+  const b = batchForm || {};
+  const totalRaw = Object.prototype.hasOwnProperty.call(b, 'totalQuantity')
+    ? b.totalQuantity
+    : existing && existing.totalQuantity;
+  const remainRaw = Object.prototype.hasOwnProperty.call(b, 'remainingQuantity')
+    ? b.remainingQuantity
+    : existing && existing.remainingQuantity;
+  const totalQuantity = _normalizeQuantity(totalRaw, '总数量', false);
+  const remainingQuantity = _normalizeQuantity(remainRaw, '剩余数量', true);
+  if (remainingQuantity > totalQuantity) throw new Error('剩余数量不能大于总数量');
+  const expireDate = String((Object.prototype.hasOwnProperty.call(b, 'expireDate') ? b.expireDate : existing && existing.expireDate) || '').trim();
+  if (!expireDate) throw new Error('有效期必填');
+  const unit = String((Object.prototype.hasOwnProperty.call(b, 'unit') ? b.unit : existing && existing.unit) || '').trim();
+  if (!unit) throw new Error('单位必填');
+  return {
+    batchNo: String((Object.prototype.hasOwnProperty.call(b, 'batchNo') ? b.batchNo : existing && existing.batchNo) || '').trim(),
+    productionDate: String((Object.prototype.hasOwnProperty.call(b, 'productionDate') ? b.productionDate : existing && existing.productionDate) || '').trim(),
+    expireDate,
+    totalQuantity,
+    remainingQuantity,
+    unit,
+    imageSourceNote: String((Object.prototype.hasOwnProperty.call(b, 'imageSourceNote') ? b.imageSourceNote : existing && existing.imageSourceNote) || '').trim(),
+    note: String((Object.prototype.hasOwnProperty.call(b, 'note') ? b.note : existing && existing.note) || '').trim()
+  };
+}
+
+function addBatchToMedicine(medicineId, batchForm) {
+  const s = readAppState();
+  if (!s.currentFamily) throw new Error('请先创建家庭');
+  const medicine = (s.medicines || []).find(m => m.id === medicineId);
+  if (!medicine) throw new Error('未找到该药品');
+  const normalized = _normalizeBatchForm(batchForm);
+  const now = _nowDateStr();
+  const batchNo = normalized.batchNo || `B-${_nowDateStr().replace(/-/g, '')}-${Math.floor(Math.random() * 900 + 100)}`;
+  const newBatch = {
+    id: _genId('B'),
+    medicineId,
+    familyId: s.currentFamily.id,
+    batchNo,
+    productionDate: normalized.productionDate,
+    expireDate: normalized.expireDate,
+    totalQuantity: normalized.totalQuantity,
+    remainingQuantity: normalized.remainingQuantity,
+    unit: normalized.unit,
+    confidence: Number(batchForm && batchForm.confidence) || 1,
+    source: (batchForm && batchForm.source) || 'manual',
+    status: 'active',
+    addedAt: now,
+    addedBy: s.currentUser.id,
+    imageSourceNote: normalized.imageSourceNote,
+    note: normalized.note
+  };
+  s.medicineBatches = (s.medicineBatches || []).concat([newBatch]);
+  _addAccessLog(s, {
+    action: '新增批次',
+    target: `${medicine.name} · ${newBatch.batchNo}`,
+    actionType: 'create'
+  });
+  _writeAppState(s);
+  return _clone(newBatch);
+}
+
+function updateMedicineBatch(batchId, patch) {
+  const s = readAppState();
+  if (!s.currentFamily) throw new Error('请先创建家庭');
+  const batch = (s.medicineBatches || []).find(b => b.id === batchId);
+  if (!batch) throw new Error('未找到该批次');
+  const medicine = (s.medicines || []).find(m => m.id === batch.medicineId);
+  const normalized = _normalizeBatchForm(patch, batch);
+  Object.assign(batch, normalized, {
+    updatedAt: _nowDateTimeStr(),
+    updatedBy: s.currentUser.id
+  });
+  _addAccessLog(s, {
+    action: '修改批次',
+    target: `${medicine ? medicine.name : '药品'} · ${batch.batchNo}`,
+    actionType: 'update'
+  });
+  _writeAppState(s);
+  return _clone(batch);
+}
+
+function setMedicineBatchStatus(batchId, status) {
+  const nextStatus = status === 'disabled' ? 'disabled' : 'active';
+  const s = readAppState();
+  if (!s.currentFamily) throw new Error('请先创建家庭');
+  const batch = (s.medicineBatches || []).find(b => b.id === batchId);
+  if (!batch) throw new Error('未找到该批次');
+  const medicine = (s.medicines || []).find(m => m.id === batch.medicineId);
+  batch.status = nextStatus;
+  batch.statusChangedAt = _nowDateTimeStr();
+  batch.statusChangedBy = s.currentUser.id;
+  _addAccessLog(s, {
+    action: nextStatus === 'disabled' ? '停用批次' : '恢复批次',
+    target: `${medicine ? medicine.name : '药品'} · ${batch.batchNo}`,
+    actionType: nextStatus === 'disabled' ? 'disable' : 'update'
+  });
+  _writeAppState(s);
+  return _clone(batch);
+}
+
 // ==================== 4. 提醒计划 & 记录 ====================
 function getMedicationPlans() { return _clone(readAppState().medicationPlans || []); }
 function getMedicationRecords() { return _clone(readAppState().medicationRecords || []); }
@@ -465,7 +644,7 @@ function getMemberNames(ids, fallbackLabel) {
 }
 
 function getMedicineSummary(medicineId) {
-  const batches = (readAppState().medicineBatches || []).filter(b => b.medicineId === medicineId && b.status !== 'disabled');
+  const batches = (readAppState().medicineBatches || []).filter(b => b.medicineId === medicineId && b.status !== 'disabled' && b.status !== 'inactive');
   const activeBatches = batches.filter(b => b.status === 'active');
   let overall = 'normal';
   const availableStock = batches.reduce((sum, b) => sum + (Number(b.remainingQuantity) || 0), 0);
@@ -596,7 +775,7 @@ function getDashboardStats() {
   const medicineAggregateStatus = {};
   meds.forEach(m => { medicineAggregateStatus[m.id] = 'normal'; });
   batches.forEach(b => {
-    if (b.status === 'disabled') return;
+    if (b.status === 'disabled' || b.status === 'inactive') return;
     const bs = _batchStatus(b);
     if (bs === 'expired') exp++;
     else if (bs === 'nearExpire') near++;
@@ -629,7 +808,7 @@ function getTodayAttention() {
   const nearMedIds = new Set();
   const lowMedIds = new Set();
   batches.forEach(b => {
-    if (b.status === 'disabled') return;
+    if (b.status === 'disabled' || b.status === 'inactive') return;
     const bs = _batchStatus(b);
     if (bs === 'expired') expiredMedIds.add(b.medicineId);
     else if (bs === 'nearExpire') nearMedIds.add(b.medicineId);
@@ -856,6 +1035,10 @@ module.exports = {
   getMedicineBatches,
   matchExistingMedicineByForm,
   addMedicineAndBatch,
+  updateMedicine,
+  addBatchToMedicine,
+  updateMedicineBatch,
+  setMedicineBatchStatus,
 
   // ---- 提醒计划 & 记录（兼容第四阶段老人端） ----
   getMedicationPlans,

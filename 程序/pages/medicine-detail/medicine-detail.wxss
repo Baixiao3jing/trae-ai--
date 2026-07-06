@@ -108,6 +108,11 @@
   color: var(--danger);
   border: 2rpx solid #f5b7b1;
 }
+.batch-card.is-disabled .batch-op-disable {
+  color: var(--primary);
+  border-color: var(--primary-light);
+  background: var(--primary-bg);
+}
 .batch-card.is-disabled {
   opacity: 0.6;
   filter: grayscale(0.2);
@@ -151,17 +156,38 @@
   margin-bottom: 28rpx;
 }
 
-.med-big-icon {
+.med-big-cover {
   width: 120rpx;
   height: 120rpx;
   border-radius: 28rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 56rpx;
   flex-shrink: 0;
   background: rgba(255,255,255,0.18);
+  overflow: hidden;
+  border: 1rpx solid rgba(255,255,255,0.28);
+}
+
+.med-big-cover-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.med-big-cover-placeholder {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 46rpx;
+  font-weight: 900;
   color: #fff;
+}
+
+.med-big-cover-sub {
+  margin-top: 4rpx;
+  font-size: 20rpx;
+  font-weight: 700;
+  opacity: 0.86;
 }
 
 .hero-main { flex: 1; min-width: 0; }
@@ -495,4 +521,178 @@
   line-height: 1.7;
   margin-bottom: 36rpx;
   padding: 0 16rpx;
+}
+
+/* 编辑弹层 */
+.editor-mask {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 99;
+  background: rgba(0, 0, 0, 0.42);
+  display: flex;
+  align-items: flex-end;
+}
+
+.editor-panel {
+  width: 100%;
+  max-height: 86vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  background: var(--surface);
+  border-radius: 28rpx 28rpx 0 0;
+  padding: 30rpx 32rpx calc(32rpx + env(safe-area-inset-bottom));
+  box-shadow: var(--shadow-modal);
+}
+
+.editor-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-bottom: 24rpx;
+}
+
+.editor-title {
+  font-size: 34rpx;
+  font-weight: 900;
+  color: var(--text);
+}
+
+.editor-subtitle {
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: var(--text-light);
+  line-height: 1.5;
+}
+
+.editor-close {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: var(--surface-alt);
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 42rpx;
+  line-height: 1;
+}
+
+.cover-editor {
+  display: flex;
+  gap: 20rpx;
+  align-items: center;
+  padding: 18rpx;
+  border-radius: var(--radius-lg);
+  background: var(--surface-alt);
+  margin-bottom: 24rpx;
+}
+
+.cover-preview {
+  width: 148rpx;
+  height: 148rpx;
+  border-radius: 22rpx;
+  background: #fff;
+  overflow: hidden;
+  border: 1rpx dashed var(--primary-light);
+  flex-shrink: 0;
+}
+
+.cover-preview-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.cover-preview-empty {
+  height: 100%;
+  color: var(--primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 22rpx;
+  font-weight: 700;
+}
+
+.cover-preview-plus {
+  font-size: 44rpx;
+  line-height: 1;
+}
+
+.cover-actions {
+  flex: 1;
+  min-width: 0;
+}
+
+.cover-action-row {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 12rpx;
+}
+
+.mini-outline,
+.mini-danger {
+  margin: 0;
+  padding: 0 20rpx;
+  min-height: 56rpx;
+  line-height: 56rpx;
+  border-radius: 999rpx;
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.mini-outline {
+  color: var(--primary);
+  background: #fff;
+  border: 1rpx solid var(--primary-light);
+}
+
+.mini-danger {
+  color: var(--danger);
+  background: #fff;
+  border: 1rpx solid #f5b7b1;
+}
+
+.form-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18rpx;
+}
+
+.compact-textarea {
+  min-height: 150rpx;
+}
+
+.editor-actions {
+  position: sticky;
+  bottom: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0), var(--surface) 20%);
+  padding-top: 22rpx;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18rpx;
+}
+
+.editor-btn {
+  margin: 0;
+  height: 88rpx;
+  line-height: 88rpx;
+  border-radius: 999rpx;
+  font-size: 30rpx;
+  font-weight: 800;
+}
+
+.editor-btn-ghost {
+  color: var(--text-light);
+  background: var(--surface-alt);
+}
+
+.editor-btn-primary {
+  color: #fff;
+  background: var(--gradient-brand);
+  box-shadow: var(--shadow-float);
 }

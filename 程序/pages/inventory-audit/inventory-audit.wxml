@@ -1,0 +1,39 @@
+<view class="page audit-page">
+  <view class="audit-hero">
+    <view class="audit-title">每月药箱盘点</view>
+    <view class="audit-subtitle">用实际库存校准服药扣减记录</view>
+  </view>
+  <view class="container">
+    <view wx:if="{{isAdmin}}" class="audit-settings app-card">
+      <view class="audit-settings-title">月盘提醒设置</view>
+      <view class="audit-setting-row"><text>启用每月盘点</text><switch checked="{{settings.enabled}}" bindchange="onSettingEnabled" color="#2e7d6a" /></view>
+      <view class="audit-setting-grid">
+        <view><view class="audit-setting-label">每月日期（1-28）</view><input type="number" value="{{settings.dayOfMonth}}" data-field="dayOfMonth" bindinput="onSettingInput" /></view>
+        <view><view class="audit-setting-label">提醒时间</view><picker mode="time" value="{{settings.reminderTime}}" bindchange="onSettingTime"><view class="audit-setting-picker">{{settings.reminderTime}}</view></picker></view>
+      </view>
+      <button class="audit-setting-save" bindtap="saveSettings">保存提醒设置</button>
+      <view class="audit-subscribe" bindtap="requestAuditSubscription">开启微信月盘提醒 ›</view>
+    </view>
+    <view wx:if="{{loading}}" class="app-empty">正在加载盘点任务...</view>
+    <view wx:elif="{{!audit}}" class="app-empty">本月暂无待完成盘点</view>
+    <block wx:else>
+      <view class="audit-progress app-card">
+        <view><text class="audit-period">{{audit.period}}</text> 药箱盘点</view>
+        <view class="audit-count">已确认 {{completedCount}} / {{items.length}}</view>
+      </view>
+      <view wx:for="{{items}}" wx:key="id" wx:for-index="idx" class="audit-item app-card">
+        <view class="audit-item-head">
+          <view><view class="audit-med-name">{{item.medicineName}}</view><view class="audit-batch">批号 {{item.batchLabel}} · 有效期 {{item.expireDate || '未填写'}}</view></view>
+          <view class="audit-status {{item.confirmed ? 'done' : ''}}">{{item.confirmed ? '已确认' : '待盘点'}}</view>
+        </view>
+        <view class="audit-quantity-row">
+          <view><text class="audit-number">{{item.systemQuantity}}</text><text class="audit-unit">{{item.unit}} 系统库存</text></view>
+          <view class="audit-arrow">→</view>
+          <view class="audit-input-wrap"><input class="audit-input" type="digit" value="{{item.actualInput}}" data-index="{{idx}}" bindinput="onActualInput" /><text class="audit-unit">{{item.unit}} 实际库存</text></view>
+        </view>
+        <view wx:if="{{canEdit}}" class="audit-actions"><button data-index="{{idx}}" bindtap="confirmCorrect">数量正确</button><button class="primary" data-index="{{idx}}" bindtap="saveItemTap">保存本项</button></view>
+      </view>
+      <button wx:if="{{canEdit}}" class="audit-complete" bindtap="completeAudit">完成本月盘点</button>
+    </block>
+  </view>
+</view>

@@ -5,12 +5,7 @@
     <view class="elder-hero-bg"></view>
     <view class="elder-hero-inner">
       <view class="elder-top">
-        <view class="elder-back" bindtap="goBack">‹ 返回</view>
         <view class="elder-call" bindtap="onCallFamily">📞 联系家人</view>
-      </view>
-      <!-- 根据角色显示不同标题 -->
-      <view wx:if="{{stage === 'ready' && isAdminView}}" class="elder-admin-preview">
-        <text class="elder-preview-tag">💡 子女查看视角</text>
       </view>
       <view class="elder-greet">{{headerTitle}}</view>
       <view class="elder-date">{{headerSubtitle}} · {{today}}</view>
@@ -55,20 +50,23 @@
 
     <!-- ===== 阶段 3：有提醒 ===== -->
     <block wx:else>
+      <view wx:if="{{isAdminView && duplicateCount > 0}}" class="elder-repair-notice">
+        <view><view class="elder-repair-title">提醒数据需要整理</view><view class="elder-repair-desc">发现 {{duplicateCount}} 条旧版重复提醒，已完成历史不会受影响。</view></view>
+        <view class="elder-repair-btn" bindtap="repairDuplicates">整理提醒</view>
+      </view>
       <!-- 提醒列表 -->
-      <view class="elder-section-title">今日服药</view>
+      <view class="elder-section-title">当前待服</view>
+
+      <view wx:if="{{reminders.length === 0}}" class="elder-period-empty">当前没有需要确认的药，下一次提醒会按设定时间出现。</view>
 
       <view
-        class="elder-card {{item.status === 'done' ? 'is-done' : ''}} {{item.status === 'upcoming' ? 'is-upcoming' : ''}} {{item.status === 'skipped' ? 'is-skipped' : ''}}"
+        class="elder-card {{item.status === 'overdue' ? 'is-overdue' : ''}}"
         wx:for="{{reminders}}"
         wx:key="id"
       >
         <view class="elder-time-box">
           <view class="elder-time">{{item.time}}</view>
-          <view class="elder-time-dot" wx:if="{{item.status === 'pending'}}"></view>
-          <view wx:if="{{item.status === 'done'}}" class="elder-done-icon">✓</view>
-          <view wx:if="{{item.status === 'upcoming'}}" class="elder-upcoming">⏰</view>
-          <view wx:if="{{item.status === 'skipped'}}" class="elder-skipped-icon">⊘</view>
+          <view class="elder-time-dot"></view>
         </view>
 
         <view class="elder-main">
@@ -83,37 +81,41 @@
             </view>
           </view>
 
-          <block wx:if="{{item.status === 'pending'}}">
+          <view wx:if="{{item.status === 'overdue'}}" class="elder-overdue-label">已超过提醒时间</view>
+          <block wx:if="{{item.actionable}}">
             <view class="elder-btns">
-              <view class="elder-btn elder-btn-take" catchtap="onTake" data-id="{{item.id}}">已服用</view>
-              <view class="elder-btn elder-btn-later" catchtap="onLater" data-id="{{item.id}}">稍后提醒</view>
+              <view class="elder-btn elder-btn-take {{processingRecordId ? 'is-disabled' : ''}}" catchtap="onTake" data-id="{{item.id}}">{{processingRecordId === item.id ? '正在记录…' : '已服用'}}</view>
+              <view class="elder-btn elder-btn-later {{processingRecordId ? 'is-disabled' : ''}}" catchtap="onLater" data-id="{{item.id}}">10分钟后</view>
             </view>
           </block>
+        </view>
+      </view>
 
-          <block wx:if="{{item.status === 'upcoming'}}">
-            <view class="elder-btns">
-              <view class="elder-btn elder-btn-take" catchtap="onTake" data-id="{{item.id}}">已服用</view>
-              <view class="elder-btn elder-btn-later" catchtap="onLater" data-id="{{item.id}}">稍后提醒</view>
-            </view>
-          </block>
+      <view wx:if="{{upcomingReminders.length}}" class="elder-group-toggle" bindtap="toggleUpcoming">
+        <text>今日稍后（{{upcomingReminders.length}}）</text>
+        <text>{{showUpcoming ? '收起' : '展开'}}</text>
+      </view>
+      <view wx:if="{{showUpcoming}}">
+        <view class="elder-compact-card" wx:for="{{upcomingReminders}}" wx:key="id">
+          <view class="elder-compact-time">{{item.time}}</view>
+          <view class="elder-compact-main">
+            <view class="elder-compact-name">{{item.medicineName}} · {{item.dosage}}</view>
+            <view class="elder-compact-desc">{{item.displayHint}}</view>
+          </view>
+        </view>
+      </view>
 
-          <block wx:if="{{item.status === 'done'}}">
-            <view class="elder-btns">
-              <view class="elder-done-tip">
-                <text class="elder-done-tip-icon">✅</text>
-                您已确认服用
-              </view>
-            </view>
-          </block>
-
-          <block wx:if="{{item.status === 'skipped'}}">
-            <view class="elder-btns">
-              <view class="elder-skipped-tip">
-                <text class="elder-skipped-tip-icon">⏭</text>
-                已跳过本次
-              </view>
-            </view>
-          </block>
+      <view wx:if="{{completedReminders.length}}" class="elder-group-toggle is-completed" bindtap="toggleCompleted">
+        <text>今日已处理（{{completedReminders.length}}）</text>
+        <text>{{showCompleted ? '收起' : '展开'}}</text>
+      </view>
+      <view wx:if="{{showCompleted}}">
+        <view class="elder-compact-card is-completed" wx:for="{{completedReminders}}" wx:key="id">
+          <view class="elder-compact-time">{{item.time}}</view>
+          <view class="elder-compact-main">
+            <view class="elder-compact-name">{{item.medicineName}} · {{item.dosage}}</view>
+            <view class="elder-compact-desc">{{item.statusLabel}}</view>
+          </view>
         </view>
       </view>
     </block>

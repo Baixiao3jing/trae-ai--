@@ -5,6 +5,7 @@
 // - 有数据 → 显示基于真实数据的统计、今日关注
 
 const appStore = require('../../utils/appStore.js');
+const syncManager = require('../../utils/syncManager.js');
 
 Page({
   data: {
@@ -20,8 +21,10 @@ Page({
       todayUnconfirmedCount: 0
     },
     todayList: [],
+    pendingAudit: null,
     currentRole: null,
-    syncTip: '家人确认服药后，家庭端会自动同步今日关注。'
+    syncTip: '家人确认服药后，家庭端会自动同步今日关注。',
+    cloudSync: syncManager.getState()
   },
 
   _refreshAll() {
@@ -37,6 +40,7 @@ Page({
     };
     const todayList = family ? appStore.getTodayAttention() : [];
     const currentRole = appStore.getCurrentRole();
+    const pendingAudit = family ? appStore.getPendingInventoryAudit() : null;
 
     this.setData({
       stage,
@@ -44,7 +48,8 @@ Page({
       user,
       dashboard,
       todayList,
-      currentRole
+      currentRole,
+      pendingAudit
     });
   },
 
@@ -53,8 +58,12 @@ Page({
   },
 
   onShow() {
-    // 每次显示都重算：家庭创建、药品录入、老人端确认、重置都会更新
     this._refreshAll();
+    this.setData({ cloudSync: syncManager.getState() });
+    syncManager.refreshCurrentFamily({ ensureToday: true, ensureMonthly: true })
+      .then(() => this._refreshAll())
+      .catch(() => {})
+      .finally(() => this.setData({ cloudSync: syncManager.getState() }));
   },
 
   // ==================== 空家庭阶段 ====================
@@ -75,6 +84,11 @@ Page({
   goAddMedicine() {
     if (!appStore.hasFamily()) {
       wx.showToast({ title: '请先创建家庭', icon: 'none' });
+      return;
+    }
+    const user = appStore.getCurrentUser();
+    if (!user || (user.role !== 'admin' && user.canEdit !== true)) {
+      wx.showToast({ title: '当前成员没有药品编辑权限', icon: 'none' });
       return;
     }
     wx.navigateTo({ url: '/pages/add-medicine/add-medicine' });
@@ -99,6 +113,10 @@ Page({
       return;
     }
     wx.navigateTo({ url: '/pages/elder/elder' });
+  },
+
+  goInventoryAudit() {
+    wx.navigateTo({ url: '/pages/inventory-audit/inventory-audit' });
   },
 
   onAttentionTap(e) {

@@ -1,5 +1,8 @@
 <!--pages/medicines/medicines.wxml  第六阶段：真实流程三种状态（无家庭 / 空药箱 / 有数据）-->
 <view class="page">
+  <view wx:if="{{cloudSync.status === 'syncing' || cloudSync.status === 'failed'}}" class="app-sync-status app-sync-status-{{cloudSync.status}}">
+    {{cloudSync.text}}
+  </view>
   <!-- ===== 无家庭阶段：请先创建家庭 ===== -->
   <block wx:if="{{stage === 'noFamily'}}">
     <view class="filter-bar filter-bar-blank">

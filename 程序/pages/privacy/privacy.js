@@ -1,137 +1,133 @@
 // pages/privacy/privacy.js
-// 药无忧第五阶段：隐私与授权页
-// 内容：授权状态卡片 + 4 段说明 + 4 个用户可控操作（弹窗演示）
+const appStore = require('../../utils/appStore.js');
+const cloudStore = require('../../utils/cloudStore.js');
+const syncManager = require('../../utils/syncManager.js');
 
-const {
-  medicines,
-  medicineBatches,
-  mockMembers,
-  mockAccessLogs,
-  mockFamily
-} = require('../../utils/mockData.js');
-
-// 授权状态卡片数据
-const AUTH_LIST = [
-  { key: 'wxLogin',  icon: '💚', label: '微信登录',       status: '已授权',       statusColor: '#27ae60', desc: '用于识别家庭账户与成员身份' },
-  { key: 'ocr',      icon: '📷', label: '药盒图片识别',   status: '仅识别时临时使用', statusColor: '#2e7d6a', desc: '识别完成后不长期保存原图' },
-  { key: 'family',   icon: '👪', label: '家庭共享',       status: '已由家庭成员授权', statusColor: '#2980b9', desc: '仅家庭成员间可见药品台账' },
-  { key: 'location', icon: '📍', label: '位置信息',       status: '未采集',        statusColor: '#7f8c8d', desc: '非必要，不采集' },
-  { key: 'phone',    icon: '📱', label: '手机号',         status: '未采集',        statusColor: '#7f8c8d', desc: '不采集手机号，仅微信昵称' },
-  { key: 'idcard',   icon: '🛡️', label: '身份证/病历',    status: '未采集',        statusColor: '#7f8c8d', desc: '非必要，不采集任何医疗敏感信息' }
-];
+function buildAuthList(hasFamily) {
+  return [
+    { key: 'wxLogin', icon: '💚', label: '微信云身份', status: cloudStore.isCloudEnabled() ? '已启用' : '本地模式', statusColor: '#27ae60', desc: '用于识别家庭账户与成员身份' },
+    { key: 'cover', icon: '📷', label: '药盒封面', status: '由用户主动选择', statusColor: '#2e7d6a', desc: '选择后保存到家庭云空间，家庭成员可见' },
+    { key: 'family', icon: '👪', label: '家庭共享', status: hasFamily ? '已加入家庭' : '尚未加入', statusColor: hasFamily ? '#2980b9' : '#7f8c8d', desc: '药品台账仅对当前家庭成员开放' },
+    { key: 'location', icon: '📍', label: '位置信息', status: '未采集', statusColor: '#7f8c8d', desc: '不采集设备定位；存放位置由用户手填' },
+    { key: 'phone', icon: '📱', label: '手机号', status: '未采集', statusColor: '#7f8c8d', desc: '当前不采集手机号' },
+    { key: 'idcard', icon: '🛡️', label: '身份证/病历', status: '未采集', statusColor: '#7f8c8d', desc: '不采集身份证、病历等非必要信息' }
+  ];
+}
 
 Page({
   data: {
     familyName: '',
-    authList: AUTH_LIST
+    authList: [],
+    canLeave: false,
+    canDeleteFamily: false,
+    canAccessLogs: false,
+    isDeletingFamily: false
   },
 
-  onLoad() {
-    this.setData({ familyName: mockFamily.name });
+  onShow() {
+    this.refresh();
+    syncManager.refreshCurrentFamily().then(() => this.refresh()).catch(() => {});
   },
 
-  // 导出药品台账（弹窗演示摘要）
-  onExport() {
-    const medCount = medicines.length;
-    const batchCount = medicineBatches.length;
-    const memCount = mockMembers.length;
-    const logCount = mockAccessLogs.length;
-
-    wx.showModal({
-      title: '导出药品台账',
-      editable: false,
-      content:
-`【导出前摘要】
-· 药品主档数量：${medCount} 条
-· 批次数量：${batchCount} 条
-· 家庭成员数量：${memCount} 位
-· 最近访问记录：${logCount} 条
-
-【导出字段】
-药品名 · 类别 · 使用人 · 批号 · 有效期 · 剩余数量 · 存放位置
-
-演示版本将生成 CSV 格式文件（实际不写入文件系统）。`,
-      confirmText: '确认导出',
-      confirmColor: '#2e7d6a',
-      success: (res) => {
-        if (res.confirm) {
-          wx.showToast({
-            title: '已生成演示版台账文件',
-            icon: 'success',
-            duration: 2000
-          });
-        }
-      }
+  refresh() {
+    const family = appStore.getCurrentFamily();
+    const user = appStore.getCurrentUser();
+    this.setData({
+      familyName: family ? family.name : '',
+      authList: buildAuthList(!!family),
+      canLeave: !!family && user && user.role !== 'admin',
+      canDeleteFamily: !!family && user && user.role === 'admin',
+      canAccessLogs: !!family && user && user.role === 'admin'
     });
   },
 
-  // 清空个人数据（弹窗演示）
   onClearPersonal() {
     wx.showModal({
-      title: '清空个人数据',
-      content: '确认清空您的个人偏好与自定义数据？\n\n（演示版本：不会真的删除家庭药品台账，仅清除本地缓存配置）',
-      confirmText: '确认清空',
+      title: '清除本机缓存',
+      content: '只清理当前手机上的缓存，不会退出家庭，也不会删除云端药品。清理后会立即重新同步。',
+      confirmText: '清理并同步',
       confirmColor: '#e67e22',
-      success: (res) => {
-        if (res.confirm) {
-          try {
-            wx.clearStorageSync();
-          } catch (e) {}
-          wx.showToast({
-            title: '已清空个人缓存',
-            icon: 'none',
-            duration: 1800
-          });
-        }
+      success: res => {
+        if (!res.confirm) return;
+        wx.showLoading({ title: '重新同步中...' });
+        syncManager.rebuildLocalCache().then(() => {
+          wx.hideLoading();
+          this.refresh();
+          wx.showToast({ title: '缓存已刷新', icon: 'success' });
+        }).catch(err => {
+          wx.hideLoading();
+          this.refresh();
+          wx.showToast({ title: err.message || '云同步暂不可用', icon: 'none' });
+        });
       }
     });
   },
 
-  // 退出家庭（弹窗演示）
   onLeaveFamily() {
+    if (!this.data.canLeave) return;
     wx.showModal({
       title: '退出当前家庭',
-      content: `确认退出「${this.data.familyName}」吗？\n\n退出后您将无法继续查看该家庭的药品台账、提醒状态和操作记录。如需再次加入，请向家庭成员索取邀请码。\n\n（演示版本：不实际移除成员）`,
+      content: `确认退出「${this.data.familyName}」吗？退出后需要新的有效邀请码才能再次加入。`,
       confirmText: '确认退出',
       confirmColor: '#e74c3c',
-      success: (res) => {
-        if (res.confirm) {
-          wx.showToast({
-            title: '演示版本：已取消',
-            icon: 'none'
-          });
-        }
+      success: res => {
+        if (!res.confirm) return;
+        const familyId = appStore.getActiveFamilyId();
+        wx.showLoading({ title: '正在退出...' });
+        cloudStore.leaveFamily(familyId).then(() => {
+          appStore.clearFamilyCache();
+          wx.hideLoading();
+          wx.showToast({ title: '已退出家庭', icon: 'success' });
+          setTimeout(() => wx.switchTab({ url: '/pages/index/index' }), 500);
+        }).catch(err => {
+          wx.hideLoading();
+          wx.showToast({ title: err.message || '退出失败', icon: 'none' });
+        });
       }
     });
   },
 
-  // 删除家庭空间（弹窗演示）
   onDeleteFamily() {
+    if (!this.data.canDeleteFamily || this.data.isDeletingFamily) return;
+    const familyName = this.data.familyName;
     wx.showModal({
       title: '删除家庭空间',
-      content: '⚠️ 此操作不可恢复：\n\n· 删除所有药品主档与批次\n· 删除所有提醒与服药记录\n· 所有家庭成员自动退出\n\n（演示版本：不实际删除任何数据，仅用于比赛展示确认流程）',
-      confirmText: '我已了解，删除空间',
+      content: `删除「${familyName}」后，所有成员、药品、批次、提醒、服药记录和药盒封面都将永久删除，无法恢复。`,
+      confirmText: '继续删除',
       confirmColor: '#c0392b',
-      success: (res) => {
-        if (res.confirm) {
-          wx.showModal({
-            title: '二次确认',
-            content: '请输入家庭邀请码 YAO2026 以确认删除家庭空间：\n\n（演示版本：无论输入什么都不会真的删除）',
-            editable: true,
-            placeholderText: '输入邀请码',
-            confirmText: '确认删除',
-            confirmColor: '#c0392b',
-            success: (r2) => {
-              if (r2.confirm) {
-                wx.showToast({
-                  title: '演示版本：已取消删除',
-                  icon: 'none',
-                  duration: 2000
-                });
-              }
+      success: first => {
+        if (!first.confirm) return;
+        wx.showModal({
+          title: '输入家庭名称确认',
+          content: '',
+          editable: true,
+          placeholderText: familyName,
+          confirmText: '永久删除',
+          confirmColor: '#c0392b',
+          success: second => {
+            if (!second.confirm) return;
+            const confirmation = String(second.content || '').trim();
+            if (confirmation !== familyName) {
+              wx.showToast({ title: '家庭名称不匹配', icon: 'none' });
+              return;
             }
-          });
-        }
+            const familyId = appStore.getActiveFamilyId();
+            this.setData({ isDeletingFamily: true });
+            wx.showLoading({ title: '正在删除...' });
+            cloudStore.deleteFamily(familyId, confirmation).then(() => {
+              syncManager.invalidate({ status: 'synced', text: '家庭已删除' });
+              appStore.resetLocalData();
+              wx.hideLoading();
+              this.setData({ isDeletingFamily: false });
+              wx.showToast({ title: '家庭已彻底删除', icon: 'success' });
+              setTimeout(() => wx.switchTab({ url: '/pages/index/index' }), 600);
+            }).catch(err => {
+              wx.hideLoading();
+              this.setData({ isDeletingFamily: false });
+              wx.showToast({ title: err.message || '删除失败，请重试', icon: 'none' });
+            });
+          }
+        });
       }
     });
   },

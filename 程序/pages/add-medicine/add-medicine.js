@@ -1,7 +1,9 @@
 // pages/add-medicine/add-medicine.js
 // 真实录入流程：选择方式 -> 统一表单 -> 保存成功
 const appStore = require('../../utils/appStore.js');
-const { PICKER_OPTIONS } = require('../../utils/mockData.js');
+const cloudStore = require('../../utils/cloudStore.js');
+const syncManager = require('../../utils/syncManager.js');
+const PICKER_OPTIONS = appStore.PICKER_OPTIONS;
 
 const lookupBarcode = appStore.lookupBarcode;
 const matchExistingMedicineByForm = appStore.matchExistingMedicineByForm;
@@ -34,6 +36,7 @@ function emptyMedicine() {
     customTargetMemberName: '',
     storageLocation: '',
     coverImage: '',
+    coverImageCloudId: '',
     coverSource: 'none'
   };
 }
@@ -70,6 +73,7 @@ Page({
   data: {
     step: 'choose',
     noFamily: false,
+    noEditPermission: false,
     draft: emptyDraft(),
     sources: {
       medicineSource: 'manual',
@@ -111,10 +115,16 @@ Page({
 
   ensureFamilyGate() {
     if (!appStore.hasFamily()) {
-      this.setData({ noFamily: true, step: 'choose' });
+      this.setData({ noFamily: true, noEditPermission: false, step: 'choose' });
       return false;
     }
-    this.setData({ noFamily: false });
+    const user = appStore.getCurrentUser();
+    if (!user || (user.role !== 'admin' && user.canEdit !== true)) {
+      this.setData({ noFamily: true, noEditPermission: true, step: 'choose' });
+      wx.showToast({ title: '当前成员没有药品编辑权限', icon: 'none' });
+      return false;
+    }
+    this.setData({ noFamily: false, noEditPermission: false });
     return true;
   },
 
@@ -372,6 +382,7 @@ Page({
       this.persistImagePath(imageInfo.path, savedPath => {
         this.setData({
           'draft.medicine.coverImage': savedPath || imageInfo.path,
+          'draft.medicine.coverImageCloudId': '',
           'draft.medicine.coverSource': imageInfo.source || 'album'
         });
       });
@@ -407,6 +418,7 @@ Page({
   onRemoveCoverImage() {
     this.setData({
       'draft.medicine.coverImage': '',
+      'draft.medicine.coverImageCloudId': '',
       'draft.medicine.coverSource': 'none'
     });
   },
@@ -696,6 +708,7 @@ Page({
       targetMemberLabel: String(this.data.draft.medicine.targetMemberLabel || this.data.draft.medicine.customTargetMemberName || '').trim(),
       customTargetMemberName: String(this.data.draft.medicine.customTargetMemberName || '').trim(),
       coverImage: String(this.data.draft.medicine.coverImage || '').trim(),
+      coverImageCloudId: String(this.data.draft.medicine.coverImageCloudId || '').trim(),
       coverSource: this.data.draft.medicine.coverImage
         ? String(this.data.draft.medicine.coverSource || 'photo').trim()
         : 'none'
@@ -728,34 +741,47 @@ Page({
       cancelText: '再检查',
       success: res => {
         if (!res.confirm) return;
-        let writeResult = null;
-        try {
-          writeResult = appStore.addMedicineAndBatch(med, batch);
-        } catch (e) {
-          wx.showToast({ title: (e && e.message) || '保存失败', icon: 'none' });
-          return;
-        }
-        const finalMedicine = appStore.getMedicineById(writeResult.medicineId) || med;
-        this.setData({
-          step: 'success',
-          savePreview: {
-            actionSummary: writeResult.isNewMedicine
-              ? '已创建新药品主档，并新增首个批次。'
-              : '已为现有药品新增一个批次库存。',
-            finalMedicineId: writeResult.medicineId,
-            finalBatchId: writeResult.newBatchId,
-            finalMedicine,
-            finalBatch: Object.assign({}, batch, {
-              id: writeResult.newBatchId,
-              medicineId: writeResult.medicineId
-            }),
-            batchStatus: status,
-            batchStatusLabel: statusLabel(status),
-            batchStatusColor: statusColor(status),
-            expireDaysText: expireText,
-            medicineSource: this.sourceLabel(this.data.sources.medicineSource),
-            batchSource: this.sourceLabel(this.data.sources.batchSource)
-          }
+        wx.showLoading({ title: '正在保存...' });
+        const localWrite = () => appStore.addMedicineAndBatch(med, batch);
+        syncManager.write(familyId => {
+          const upload = med.coverImage && !med.coverImageCloudId
+            ? cloudStore.uploadMedicineCover(med.coverImage, familyId)
+            : Promise.resolve({ fileID: med.coverImageCloudId || med.coverImage || '' });
+          return upload.then(uploaded => {
+            const fileID = uploaded.fileID || '';
+            const cloudMedicine = Object.assign({}, med, {
+              coverImage: fileID,
+              coverImageCloudId: fileID,
+              coverSource: fileID ? med.coverSource : 'none'
+            });
+            return cloudStore.saveMedicine(familyId, cloudMedicine, batch);
+          });
+        }, localWrite).then(writeResult => {
+          wx.hideLoading();
+          const medicineId = writeResult.medicineId;
+          const batchId = writeResult.batchId || writeResult.newBatchId;
+          const finalMedicine = appStore.getMedicineById(medicineId) || med;
+          this.setData({
+            step: 'success',
+            savePreview: {
+              actionSummary: match
+                ? '已为现有药品新增一个批次库存。'
+                : '已创建新药品主档，并新增首个批次。',
+              finalMedicineId: medicineId,
+              finalBatchId: batchId,
+              finalMedicine,
+              finalBatch: Object.assign({}, batch, { id: batchId, medicineId }),
+              batchStatus: status,
+              batchStatusLabel: statusLabel(status),
+              batchStatusColor: statusColor(status),
+              expireDaysText: expireText,
+              medicineSource: this.sourceLabel(this.data.sources.medicineSource),
+              batchSource: this.sourceLabel(this.data.sources.batchSource)
+            }
+          });
+        }).catch(err => {
+          wx.hideLoading();
+          wx.showToast({ title: (err && err.message) || '保存失败，请稍后重试', icon: 'none' });
         });
       }
     });

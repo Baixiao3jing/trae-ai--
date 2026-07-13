@@ -10,7 +10,7 @@
 /* Hero */
 .elder-hero {
   position: relative;
-  padding: 24rpx 32rpx 48rpx;
+  padding: 20rpx 32rpx 40rpx;
   overflow: hidden;
 }
 
@@ -39,9 +39,9 @@
 
 .elder-top {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  margin-bottom: 24rpx;
+  margin-bottom: 16rpx;
 }
 
 .elder-back {
@@ -288,9 +288,11 @@
   line-height: 1;
   letter-spacing: 1rpx;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .elder-btn:active { transform: scale(0.97); }
+.elder-btn.is-disabled { opacity: 0.55; }
 
 .elder-btn-take {
   background: linear-gradient(135deg, #27ae60, #2ecc71);
@@ -429,6 +431,70 @@
   justify-content: center;
   gap: 10rpx;
 }
+
+.elder-period-empty {
+  padding: 30rpx;
+  margin-bottom: 24rpx;
+  border: 2rpx solid #f3d7ad;
+  border-radius: var(--radius-card);
+  background: #fffaf1;
+  color: #7b6254;
+  font-size: 28rpx;
+  line-height: 1.6;
+}
+.elder-repair-notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  margin-bottom: 24rpx;
+  padding: 24rpx 26rpx;
+  border: 2rpx solid #efc88c;
+  border-radius: var(--radius-card);
+  background: #fff7e6;
+}
+.elder-repair-title { color: #9a5c12; font-size: 28rpx; font-weight: 800; }
+.elder-repair-desc { margin-top: 5rpx; color: #8a7358; font-size: 23rpx; }
+.elder-repair-btn { flex-shrink: 0; padding: 16rpx 22rpx; border-radius: 100rpx; background: #d98216; color: #fff; font-size: 25rpx; font-weight: 800; }
+
+.elder-card.is-overdue { border-color: #f2b5aa; }
+.elder-overdue-label {
+  margin: -6rpx 0 18rpx;
+  color: #c0392b;
+  font-size: 26rpx;
+  font-weight: 700;
+}
+
+.elder-group-toggle {
+  min-height: 88rpx;
+  margin: 26rpx 0 16rpx;
+  padding: 0 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 2rpx solid #f3d7ad;
+  border-radius: var(--radius-card);
+  background: #fff8e8;
+  color: #8a5a24;
+  font-size: 29rpx;
+  font-weight: 800;
+}
+.elder-group-toggle.is-completed { background: #eef8f3; border-color: #c6e2d5; color: #2e7d6a; }
+.elder-compact-card {
+  display: flex;
+  gap: 24rpx;
+  align-items: center;
+  margin-bottom: 16rpx;
+  padding: 24rpx 28rpx;
+  border: 2rpx solid #f0dfc5;
+  border-radius: var(--radius-card);
+  background: #fff;
+}
+.elder-compact-card.is-completed { opacity: 0.76; border-color: #d9e7e1; }
+.elder-compact-time { width: 108rpx; flex-shrink: 0; color: #d35400; font-size: 32rpx; font-weight: 900; }
+.elder-compact-main { min-width: 0; flex: 1; }
+.elder-compact-name { color: #1f2a27; font-size: 30rpx; font-weight: 800; }
+.elder-compact-desc { margin-top: 6rpx; color: #73827e; font-size: 25rpx; line-height: 1.45; }
 .elder-skipped-tip-icon {
   font-size: 32rpx;
 }

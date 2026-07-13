@@ -17,9 +17,47 @@
   "compileType": "miniprogram",
   "simulatorPluginLibVersion": {},
   "packOptions": {
-    "ignore": [],
+    "ignore": [
+      {
+        "type": "folder",
+        "value": "cloudfunctions"
+      },
+      {
+        "type": "folder",
+        "value": "tests"
+      },
+      {
+        "type": "folder",
+        "value": "node_modules"
+      },
+      {
+        "type": "file",
+        "value": ".eslintrc.js"
+      },
+      {
+        "type": "file",
+        "value": "project.private.config.json"
+      },
+      {
+        "type": "suffix",
+        "value": ".log"
+      },
+      {
+        "type": "suffix",
+        "value": ".tmp"
+      },
+      {
+        "type": "suffix",
+        "value": ".zip"
+      },
+      {
+        "type": "suffix",
+        "value": ".test.js"
+      }
+    ],
     "include": []
   },
   "appid": "wxb8e11431e765747d",
+  "cloudfunctionRoot": "cloudfunctions/",
   "editorSetting": {}
 }

@@ -9,6 +9,7 @@
     "pages/elder/elder",
     "pages/privacy/privacy",
     "pages/access-logs/access-logs"
+    ,"pages/inventory-audit/inventory-audit"
   ],
   "window": {
     "backgroundTextStyle": "light",
@@ -42,11 +43,6 @@
         "selectedIconPath": "assets/tab/me-active.png"
       }
     ]
-  },
-  "permission": {
-    "scope.camera": {
-      "desc": "用于扫描药盒条码和拍摄药盒有效期信息"
-    }
   },
   "style": "v2",
   "sitemapLocation": "sitemap.json",

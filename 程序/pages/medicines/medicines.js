@@ -6,6 +6,7 @@
 // - hasData：展示用户录入的药品，筛选正常工作
 
 const appStore = require('../../utils/appStore.js');
+const syncManager = require('../../utils/syncManager.js');
 
 function coverText(medicine) {
   const name = String((medicine && (medicine.shortName || medicine.name)) || '').trim();
@@ -64,7 +65,8 @@ Page({
     activeLocation: 'all',
     medicineCards: [],
     filteredCards: [],
-    totalCount: 0
+    totalCount: 0,
+    cloudSync: syncManager.getState()
   },
 
   _refresh() {
@@ -99,8 +101,12 @@ Page({
   },
 
   onShow() {
-    // 切回时重算（药品录入/重置都会变）
     this._refresh();
+    this.setData({ cloudSync: syncManager.getState() });
+    syncManager.refreshCurrentFamily()
+      .then(() => this._refresh())
+      .catch(() => {})
+      .finally(() => this.setData({ cloudSync: syncManager.getState() }));
   },
 
   _buildCard(m) {
@@ -215,6 +221,11 @@ Page({
   goAddMedicine() {
     if (!appStore.hasFamily()) {
       this.goCreateFamily();
+      return;
+    }
+    const user = appStore.getCurrentUser();
+    if (!user || (user.role !== 'admin' && user.canEdit !== true)) {
+      wx.showToast({ title: '当前成员没有药品编辑权限', icon: 'none' });
       return;
     }
     wx.navigateTo({ url: '/pages/add-medicine/add-medicine' });

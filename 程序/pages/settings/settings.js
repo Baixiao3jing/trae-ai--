@@ -1,6 +1,8 @@
 // pages/settings/settings.js
 // 第六阶段：基于真实 appStore 状态，区分"未创建家庭"和"已有家庭"两阶段
 const appStore = require('../../utils/appStore.js');
+const cloudStore = require('../../utils/cloudStore.js');
+const syncManager = require('../../utils/syncManager.js');
 const ENABLE_DEMO_TOOLS = appStore.ENABLE_DEMO_TOOLS === true;
 const {
   setCurrentRoleId,
@@ -114,18 +116,10 @@ Page({
               color: '#9b59b6'
             },
             {
-              key: 'export',
-              icon: '📤',
-              label: '数据导出',
-              desc: meds.length > 0 ? `共 ${meds.length} 种药品可导出` : '录入药品后可导出',
-              bg: '#e8fdf0',
-              color: '#27ae60'
-            },
-            {
               key: 'reset-local',
               icon: '🧹',
-              label: '清空本地数据',
-              desc: '清空家庭/成员/药品/批次等全部本地数据，回到首次使用状态',
+              label: '清理本机缓存',
+              desc: '不会退出云家庭，清理后会重新同步最新数据',
               bg: '#fdecea',
               color: '#e74c3c'
             }
@@ -190,8 +184,8 @@ Page({
             {
               key: 'reset-local',
               icon: '🧹',
-              label: '清空本地数据',
-              desc: '回到首次打开小程序的状态',
+              label: '清理本机缓存',
+              desc: '清除本机缓存，不会删除云端家庭数据',
               bg: '#fdecea',
               color: '#e74c3c'
             }
@@ -213,6 +207,12 @@ Page({
           ]
         });
       }
+    }
+
+    if (user && user.role !== 'admin') {
+      menuGroups = menuGroups.map(group => Object.assign({}, group, {
+        items: (group.items || []).filter(item => item.key !== 'logs')
+      })).filter(group => group.items.length > 0);
     }
 
     let loadedAt = '';
@@ -281,7 +281,7 @@ Page({
     }
     wx.showModal({
       title: '加载示例体验数据',
-      content: '是否加载一组完整的示例家庭与药品数据？\n\n加载后可在「清空本地数据」中一键恢复到首次使用状态。',
+      content: '是否加载一组完整的示例家庭与药品数据？\n\n加载后可通过「清理本机缓存」移除本地示例数据。',
       confirmText: '确认加载',
       confirmColor: '#2e7d6a',
       cancelText: '取消',
@@ -298,26 +298,32 @@ Page({
     });
   },
 
-  // ==================== 清空本地数据 ====================
+  // ==================== 清理本机缓存 ====================
   onResetLocal() {
     wx.showModal({
-      title: '清空本地数据',
-      content: '确定清空当前家庭、成员、药品、批次、提醒等全部本地数据吗？\n\n此操作不可恢复，将回到首次打开小程序的状态。',
-      confirmText: '确认清空',
+      title: '清理本机缓存',
+      content: '只清理当前手机上的缓存，不会退出家庭，也不会删除云端药品。清理后会重新同步最新家庭数据。',
+      confirmText: '清理并同步',
       confirmColor: '#e74c3c',
       cancelText: '取消',
       success: (res) => {
         if (!res.confirm) return;
-        appStore.resetLocalData();
-        wx.showToast({
-          title: '已清空，回到首次使用',
-          icon: 'success',
-          duration: 2000
-        });
-        setTimeout(() => {
+        if (!cloudStore.isCloudEnabled()) {
+          syncManager.rebuildLocalCache();
           this._refreshAll();
-          wx.switchTab({ url: '/pages/index/index' });
-        }, 400);
+          wx.showToast({ title: '本机缓存已清理', icon: 'success' });
+          return;
+        }
+        wx.showLoading({ title: '重新同步中...' });
+        syncManager.rebuildLocalCache().then(() => {
+          wx.hideLoading();
+          this._refreshAll();
+          wx.showToast({ title: appStore.hasFamily() ? '缓存已刷新' : '缓存已清理', icon: 'success' });
+        }).catch(() => {
+          wx.hideLoading();
+          this._refreshAll();
+          wx.showToast({ title: '缓存已清理，云同步暂不可用', icon: 'none' });
+        });
       }
     });
   },
@@ -361,14 +367,29 @@ Page({
           confirmColor: '#e74c3c',
           success: (res) => {
             if (res.confirm) {
-              wx.showToast({ title: '功能开发中', icon: 'none' });
+              const familyId = appStore.getActiveFamilyId();
+              if (!cloudStore.isCloudEnabled()) {
+                appStore.clearFamilyCache();
+                this._refresh();
+                return;
+              }
+              wx.showLoading({ title: '正在退出...' });
+              cloudStore.leaveFamily(familyId).then(() => {
+                appStore.clearFamilyCache();
+                wx.hideLoading();
+                wx.showToast({ title: '已退出家庭', icon: 'success' });
+                this._refresh();
+              }).catch(err => {
+                wx.hideLoading();
+                wx.showToast({ title: err.message || '退出失败', icon: 'none' });
+              });
             }
           }
         });
         break;
       }
       default:
-        wx.showToast({ title: '功能开发中', icon: 'none' });
+        wx.showToast({ title: '暂不支持此操作', icon: 'none' });
     }
   },
 

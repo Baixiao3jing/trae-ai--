@@ -1,7 +1,82 @@
 <!--pages/family/family.wxml-->
 <view class="page">
+  <!-- ===== 邀请阶段：独立加入流程，不展示创建家庭 ===== -->
+  <block wx:if="{{stage === 'inviteLoading' || stage === 'inviteJoin' || stage === 'inviteInvalid' || stage === 'inviteConflict'}}">
+    <view class="family-header family-header-invite">
+      <view class="family-bg"></view>
+      <view class="family-inner family-inner-create">
+        <view class="family-icon-wrap">
+          <view class="family-icon">🏠</view>
+        </view>
+        <view class="family-name">邀请你加入家庭药箱</view>
+        <view class="family-info">
+          <text>加入后可与家人共享药品、库存和提醒</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="container invite-page-container">
+      <view wx:if="{{stage === 'inviteLoading'}}" class="invite-state-card">
+        <view class="invite-state-icon">⌛</view>
+        <view class="invite-state-title">正在验证家庭邀请</view>
+        <view class="invite-state-desc">请稍候，我们正在确认邀请码是否有效。</view>
+      </view>
+
+      <view wx:elif="{{stage === 'inviteJoin'}}" class="cloud-join-card cloud-join-card-primary">
+        <view class="invite-family-label">你将加入</view>
+        <view class="invite-family-name">{{invitePreview.familyName}}</view>
+        <view class="cloud-join-desc">
+          邀请码：<text class="invite-code-big">{{inviteCodeFromLink}}</text>
+          <text wx:if="{{invitePreview.expiresText}}" class="invite-expire-text">有效至 {{invitePreview.expiresText}}</text>
+        </view>
+        <view class="app-form-field">
+          <view class="app-form-label"><text class="app-form-required">*</text> 你的姓名或称呼</view>
+          <input class="app-form-input" value="{{joinForm.name}}" bindinput="onJoinNameInput" placeholder="例如：爸爸、妈妈" />
+        </view>
+        <view class="app-form-field">
+          <view class="app-form-label">与家庭关系</view>
+          <input class="app-form-input" value="{{joinForm.relation}}" bindinput="onJoinRelationInput" placeholder="例如：父亲、母亲、配偶" />
+        </view>
+        <view class="app-form-field">
+          <view class="app-form-label">加入身份</view>
+          <view class="app-option-row">
+            <view class="app-option-chip {{joinForm.role === 'member' ? 'app-option-chip-active' : ''}}" data-role="member" bindtap="chooseJoinRole">家庭成员</view>
+            <view class="app-option-chip {{joinForm.role === 'elder' ? 'app-option-chip-active' : ''}}" data-role="elder" bindtap="chooseJoinRole">老人</view>
+          </view>
+          <view class="app-form-helper">新成员默认只读，编辑权限由家庭管理员设置。</view>
+        </view>
+        <view class="btn-create" bindtap="submitJoinByInvite">加入家庭</view>
+        <view class="invite-secondary-action" bindtap="cancelInvite">暂不加入</view>
+      </view>
+
+      <view wx:elif="{{stage === 'inviteConflict'}}" class="invite-state-card">
+        <view class="invite-state-icon">🏠</view>
+        <view class="invite-state-title">你已经加入一个家庭</view>
+        <view class="invite-state-desc">当前家庭为「{{existingFamilyName}}」，暂不支持同时加入「{{invitePreview.familyName}}」。</view>
+        <view class="btn-create" bindtap="viewCurrentFamily">查看当前家庭</view>
+        <view class="invite-secondary-action" bindtap="cancelInvite">暂不加入</view>
+      </view>
+
+      <view wx:else class="invite-state-card">
+        <view class="invite-state-icon">!</view>
+        <view class="invite-state-title">无法使用这份邀请</view>
+        <view class="invite-state-desc">{{inviteErrorText}}</view>
+        <view class="btn-create" bindtap="retryInvitePreview">重新加载</view>
+        <view class="invite-secondary-action" bindtap="cancelInvite">返回首页</view>
+      </view>
+
+      <view class="tip-box invite-tip-box">
+        <view class="tip-icon">💚</view>
+        <view class="tip-text">
+          <view class="tip-title">药无忧 · 小贴士</view>
+          <view class="tip-desc">加入后只共享家庭药品管理数据，不提供医疗诊断和用药建议。</view>
+        </view>
+      </view>
+    </view>
+  </block>
+
   <!-- ===== 无家庭阶段：创建家庭表单 ===== -->
-  <block wx:if="{{stage === 'noFamily'}}">
+  <block wx:elif="{{stage === 'noFamily'}}">
     <view class="family-header">
       <view class="family-bg"></view>
       <view class="family-inner family-inner-create">
@@ -60,6 +135,7 @@
         <view class="app-form-helper">
           家庭创建后，你可以录入药品并邀请家人。家庭邀请码将在创建后生成。
         </view>
+        <view class="cloud-sync-hint" bindtap="checkCloudSync">{{cloudChecking ? '正在检测云同步...' : cloudSyncText}} · 点击检测</view>
       </view>
 
       <view class="tip-box mt-32">
@@ -129,6 +205,9 @@
             <text class="overview-info-val overview-code-val">{{family.inviteCode}}</text>
           </view>
         </view>
+      </view>
+      <view class="cloud-sync-hint cloud-sync-hint-card" bindtap="checkCloudSync">
+        {{cloudChecking ? '正在检测云同步...' : cloudSyncText}} · 点击重新检测
       </view>
 
       <view class="invite-card" bindtap="openInvite">
@@ -210,7 +289,7 @@
           </view>
           <view class="quick-mini-arrow">›</view>
         </view>
-        <view class="quick-mini" bindtap="goAccessLogs">
+        <view wx:if="{{isAdmin}}" class="quick-mini" bindtap="goAccessLogs">
           <view class="quick-mini-icon" style="background: #f5eef9; color: #8e44ad;">📋</view>
           <view class="quick-mini-main">
             <view class="quick-mini-title">访问与操作记录</view>
@@ -229,18 +308,32 @@
       </view>
     </view>
 
-    <!-- 邀请弹窗：分享 / 邀请码 / 快速添加家人（本地录入） -->
+    <!-- 邀请弹窗：分享 / 邀请码 -->
     <view class="mask {{showInvite ? 'show' : ''}}" bindtap="closeInvite"></view>
     <view class="sheet {{showInvite ? 'show' : ''}}" catchtap="">
       <view class="sheet-handle"></view>
       <view class="sheet-title">邀请家人加入家庭</view>
       <view class="sheet-desc">选择一种方式，将家人加入「{{family.name}}」</view>
 
-      <view class="invite-way" bindtap="shareInvite">
+      <button
+        wx:if="{{cloudShareReady}}"
+        class="invite-way invite-share-button {{cloudShareReady ? '' : 'invite-way-disabled'}}"
+        open-type="share"
+      >
         <view class="invite-way-icon" style="background: #e7f2ee; color: #2e7d6a;">📤</view>
         <view class="invite-way-main">
           <view class="invite-way-title">微信分享邀请</view>
-          <view class="invite-way-desc">直接发送给家人的微信，打开后自动进入家庭</view>
+          <view class="invite-way-desc">
+            直接发送给家人的微信，打开后自动进入家庭
+          </view>
+        </view>
+        <view class="invite-way-arrow">›</view>
+      </button>
+      <view wx:else class="invite-way invite-way-disabled" bindtap="shareInvite">
+        <view class="invite-way-icon" style="background: #e7f2ee; color: #2e7d6a;">📤</view>
+        <view class="invite-way-main">
+          <view class="invite-way-title">微信分享邀请</view>
+          <view class="invite-way-desc">请先确认云同步成功后再邀请家人</view>
         </view>
         <view class="invite-way-arrow">›</view>
       </view>
@@ -256,20 +349,20 @@
         <view class="invite-way-btn">复制</view>
       </view>
 
+      <view wx:if="{{isAdmin}}" class="invite-way" bindtap="rotateInviteCode">
+        <view class="invite-way-icon" style="background: #e8f4fd; color: #2980b9;">↻</view>
+        <view class="invite-way-main">
+          <view class="invite-way-title">重新生成邀请码</view>
+          <view class="invite-way-desc">旧邀请码立即失效，新邀请码有效 30 天</view>
+        </view>
+        <view class="invite-way-arrow">›</view>
+      </view>
+
       <view class="invite-way invite-way-elder" bindtap="openElderAgreement">
         <view class="invite-way-icon" style="background: #eafaf1; color: #27ae60;">👁</view>
         <view class="invite-way-main">
           <view class="invite-way-title">邀请长辈加入（大字版）</view>
           <view class="invite-way-desc">大字版授权说明，可先预览再让长辈阅读并加入</view>
-        </view>
-        <view class="invite-way-arrow">›</view>
-      </view>
-
-      <view class="invite-way invite-way-mock" bindtap="openQuickAdd">
-        <view class="invite-way-icon" style="background: #fff4e5; color: #d35400;">👨‍👩‍👧</view>
-        <view class="invite-way-main">
-          <view class="invite-way-title">快速添加家人（本地录入）</view>
-          <view class="invite-way-desc">先本地录入家人关系和姓名，方便配置提醒与台账</view>
         </view>
         <view class="invite-way-arrow">›</view>
       </view>
@@ -330,72 +423,5 @@
       </view>
     </view>
 
-    <!-- 快速添加家人（本地录入） -->
-    <view class="mask {{showQuickAdd ? 'show' : ''}}" bindtap="closeQuickAdd"></view>
-    <view class="sheet {{showQuickAdd ? 'show' : ''}}" catchtap="">
-      <view class="sheet-handle"></view>
-      <view class="sheet-title">快速添加家人（本地录入）</view>
-      <view class="sheet-desc">选择家人关系，然后填写姓名或称呼</view>
-
-      <view class="mock-pick-list">
-        <view class="mock-pick-item" data-type="elder_male" bindtap="onTemplatePick">
-          <view class="mock-pick-avatar mock-pick-dad">👴</view>
-          <view class="mock-pick-main">
-            <view class="mock-pick-name">长辈（男）</view>
-            <view class="mock-pick-role">老人 · 只读自己的提醒，可确认服药</view>
-          </view>
-          <view class="invite-way-arrow">›</view>
-        </view>
-        <view class="mock-pick-item" data-type="elder_female" bindtap="onTemplatePick">
-          <view class="mock-pick-avatar mock-pick-mom">👵</view>
-          <view class="mock-pick-main">
-            <view class="mock-pick-name">长辈（女）</view>
-            <view class="mock-pick-role">老人 · 只读自己的提醒，可确认服药</view>
-          </view>
-          <view class="invite-way-arrow">›</view>
-        </view>
-        <view class="mock-pick-item" data-type="spouse" bindtap="onTemplatePick">
-          <view class="mock-pick-avatar mock-pick-other" style="background:#ffe8e8;">👩‍❤️‍👨</view>
-          <view class="mock-pick-main">
-            <view class="mock-pick-name">配偶</view>
-            <view class="mock-pick-role">家庭成员 · 可查看台账，协助录入</view>
-          </view>
-          <view class="invite-way-arrow">›</view>
-        </view>
-        <view class="mock-pick-item" data-type="child" bindtap="onTemplatePick">
-          <view class="mock-pick-avatar mock-pick-other" style="background:#e6f4ff;">👶</view>
-          <view class="mock-pick-main">
-            <view class="mock-pick-name">子女</view>
-            <view class="mock-pick-role">家庭成员 · 可查看台账，协助录入</view>
-          </view>
-          <view class="invite-way-arrow">›</view>
-        </view>
-        <view class="mock-pick-item" data-type="other" bindtap="onTemplatePick">
-          <view class="mock-pick-avatar mock-pick-other">🙋</view>
-          <view class="mock-pick-main">
-            <view class="mock-pick-name">自定义家人</view>
-            <view class="mock-pick-role">自定义关系 · 角色可选择老人/成员</view>
-          </view>
-          <view class="invite-way-arrow">›</view>
-        </view>
-      </view>
-
-      <block wx:if="{{showCustomName}}">
-        <view class="other-member-block app-form-field">
-          <view class="app-form-label">请填写家人姓名或称呼</view>
-          <input
-            class="app-form-input"
-            type="text"
-            maxlength="10"
-            placeholder="例如：爸爸 / 妈妈 / 哥哥 / 奶奶"
-            value="{{customMemberName}}"
-            bindinput="onCustomNameInput"
-          />
-          <view class="btn-create btn-create-sm" bindtap="confirmCustomMember">确认添加</view>
-        </view>
-      </block>
-
-      <view class="sheet-close" bindtap="closeQuickAdd">取消</view>
-    </view>
   </block>
 </view>

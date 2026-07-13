@@ -142,8 +142,8 @@
       </view>
 
       <view class="btn-row">
-        <button class="btn btn-outline btn-block" bindtap="goEdit">编辑药品主档</button>
-        <button class="btn btn-primary btn-block mt-16" bindtap="goSetReminder">配置用药提醒</button>
+        <button wx:if="{{canEdit}}" class="btn btn-outline btn-block" bindtap="goEdit">编辑药品主档</button>
+        <button wx:if="{{canEdit}}" class="btn btn-primary btn-block mt-16" bindtap="goSetReminder">配置用药提醒</button>
       </view>
     </block>
 
@@ -157,7 +157,7 @@
               排序：未过期批次在前，越早过期越靠前；已过期靠后；停用批次最后。
             </view>
           </view>
-          <view class="mini-btn" bindtap="goAddBatch">+ 新增批次</view>
+          <view wx:if="{{canEdit}}" class="mini-btn" bindtap="goAddBatch">+ 新增批次</view>
         </view>
       </view>
 
@@ -246,7 +246,7 @@
 
           <!-- 批次操作按钮 -->
           <view class="batch-op-row">
-            <view class="batch-op batch-op-edit" data-id="{{item.id}}" bindtap="goEditBatch">编辑批次</view>
+            <view wx:if="{{canEdit}}" class="batch-op batch-op-edit" data-id="{{item.id}}" bindtap="goEditBatch">编辑批次</view>
             <view class="batch-op batch-op-disable" data-id="{{item.id}}" bindtap="goDisableBatch">
               {{item.disabled ? '重新启用' : '停用批次'}}
             </view>
@@ -281,17 +281,80 @@
       </view>
     </block>
 
-    <!-- ================= 用药计划 tab（占位） ================= -->
+    <!-- ================= 用药计划 tab ================= -->
     <block wx:if="{{activeTab === 'plan'}}">
-      <view class="card">
-        <view class="card-title">用药计划</view>
-        <view class="placeholder">
-          <view class="placeholder-icon">⏰</view>
-          <view class="placeholder-title">用药提醒（待完善）</view>
-          <view class="placeholder-desc">
-            后续阶段将在此配置：使用者、每次用量、每日次数、提醒时间、是否需要子女监督与二次确认等。
+      <view class="usage-forecast-card {{usageForecast.lowStock ? 'usage-forecast-warning' : ''}}">
+        <view class="usage-forecast-title">预计用量</view>
+        <block wx:if="{{usageForecast.calculable}}">
+          <view class="usage-forecast-grid">
+            <view><text class="usage-forecast-value">{{usageForecast.dailyUsage}}</text><text class="usage-forecast-unit">{{usageForecast.unit}}/天</text></view>
+            <view><text class="usage-forecast-value">{{usageForecast.availableStock}}</text><text class="usage-forecast-unit">{{usageForecast.unit}}库存</text></view>
+            <view><text class="usage-forecast-value">{{usageForecast.daysRemaining}}</text><text class="usage-forecast-unit">天可用</text></view>
           </view>
-          <button class="btn btn-primary mt-24" bindtap="goSetReminder">去配置用药计划</button>
+          <view class="usage-forecast-desc">预计用完：{{usageForecast.runoutDate}}{{usageForecast.lowStock ? ' · 建议及时补充' : ''}}</view>
+        </block>
+        <view wx:else class="usage-forecast-desc">{{usageForecast.reason}}</view>
+      </view>
+      <view class="card card-header-card">
+        <view class="card-header">
+          <view>
+            <view class="card-title" style="margin-bottom: 4rpx;">用药计划（{{medicationPlans.length}}）</view>
+            <view class="text-sm text-muted">仅记录家庭提醒，不提供剂量建议。</view>
+          </view>
+          <view wx:if="{{canEdit}}" class="mini-btn" bindtap="goSetReminder">+ 新建计划</view>
+        </view>
+      </view>
+
+      <view wx:if="{{!canEdit}}" class="app-notice-info plan-readonly-notice">当前账号只有查看权限，用药计划由管理员或获授权成员维护。</view>
+
+      <block wx:if="{{medicationPlans.length > 0}}">
+        <view
+          wx:for="{{medicationPlans}}"
+          wx:key="id"
+          class="plan-card {{item.enabled === false ? 'is-disabled' : ''}}"
+        >
+          <view class="plan-top">
+            <view>
+              <view class="plan-title">{{item.memberName}} · {{item.dosePerTime}}</view>
+              <view class="plan-subtitle">每天 {{item.timesPerDay}} 次 · {{item.timesText}}</view>
+            </view>
+            <text class="tag {{item.enabled === false ? 'tag-muted' : 'tag-primary'}}">{{item.enabledLabel}}</text>
+          </view>
+          <view class="plan-grid">
+            <view class="plan-cell">
+              <view class="plan-k">开始日期</view>
+              <view class="plan-v">{{item.startDate || '今天'}}</view>
+            </view>
+            <view class="plan-cell">
+              <view class="plan-k">结束日期</view>
+              <view class="plan-v">{{item.endDate || '长期'}}</view>
+            </view>
+            <view class="plan-cell">
+              <view class="plan-k">家人确认</view>
+              <view class="plan-v">{{item.needGuardianConfirm ? '需要' : '不需要'}}</view>
+            </view>
+            <view class="plan-cell">
+              <view class="plan-k">备注</view>
+              <view class="plan-v">{{item.note || '无'}}</view>
+            </view>
+          </view>
+          <view class="plan-op-row">
+            <view wx:if="{{canEdit}}" class="batch-op batch-op-edit" data-id="{{item.id}}" bindtap="openPlanEditor">编辑计划</view>
+            <view wx:if="{{canEdit}}" class="batch-op batch-op-disable" data-id="{{item.id}}" bindtap="togglePlanEnabled">
+              {{item.enabled === false ? '启用计划' : '停用计划'}}
+            </view>
+          </view>
+        </view>
+      </block>
+
+      <view wx:else class="card">
+        <view class="placeholder compact-placeholder">
+          <view class="placeholder-icon">⏰</view>
+          <view class="placeholder-title">还没有用药计划</view>
+          <view class="placeholder-desc">
+            可以为这个药品设置每日提醒，老人端会显示大字提醒并支持确认服用。
+          </view>
+          <button wx:if="{{canEdit}}" class="btn btn-primary mt-24" bindtap="goSetReminder">去配置用药计划</button>
         </view>
       </view>
 
@@ -452,6 +515,117 @@
       <view class="editor-actions">
         <button class="editor-btn editor-btn-ghost" bindtap="closeBatchEditor">取消</button>
         <button class="editor-btn editor-btn-primary" bindtap="saveBatchDraft">保存批次</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 用药计划编辑弹层 -->
+  <view wx:if="{{showPlanEditor}}" class="editor-mask" bindtap="closePlanEditor">
+    <view class="editor-panel" catchtap="noop">
+      <view class="editor-head">
+        <view>
+          <view class="editor-title">{{planEditorMode === 'edit' ? '编辑用药计划' : '新建用药计划'}}</view>
+          <view class="editor-subtitle">提醒内容由家人手动填写，系统不推荐剂量。</view>
+        </view>
+        <view class="editor-close" bindtap="closePlanEditor">×</view>
+      </view>
+
+      <view class="app-form-field">
+        <view class="app-form-label"><text class="app-form-required">*</text> 使用人</view>
+        <view class="app-option-row">
+          <view
+            wx:for="{{memberOptions}}"
+            wx:key="id"
+            class="app-option-chip {{planDraft.memberId === item.id ? 'app-option-chip-active' : ''}}"
+            data-id="{{item.id}}"
+            bindtap="choosePlanMember"
+          >{{item.label}}</view>
+        </view>
+      </view>
+
+      <view class="app-form-field">
+        <view class="app-form-label"><text class="app-form-required">*</text> 每次用量</view>
+        <input class="app-form-input" type="digit" value="{{planDraft.doseQuantity}}" data-field="doseQuantity" bindinput="onPlanInput" placeholder="例如：1、0.5、5" />
+        <view class="app-option-row mt-12">
+          <view wx:for="{{unitOptions}}" wx:key="*this" class="app-option-chip {{planDraft.doseUnit === item ? 'app-option-chip-active' : ''}}" data-value="{{item}}" bindtap="choosePlanDoseUnit">{{item}}</view>
+        </view>
+        <view class="app-form-helper">请按医生或药师要求填写，药无忧不判断剂量是否合理。</view>
+      </view>
+
+      <view class="switch-row">
+        <view>
+          <view class="switch-title">确认服药后扣减库存</view>
+          <view class="switch-desc">按有效期更近的批次优先扣减，跳过提醒不会扣库存。</view>
+        </view>
+        <switch checked="{{planDraft.deductStock}}" bindchange="onPlanDeductChange" color="#2e7d6a" />
+      </view>
+
+      <view class="subscribe-entry {{subscriptionConfigured ? '' : 'is-disabled'}}" bindtap="requestMedicationSubscription">
+        <view><view class="switch-title">微信订阅提醒</view><view class="switch-desc">{{subscriptionConfigured ? '获得授权后，可在小程序外收到微信服务通知；小程序内提醒始终保留。' : '暂未开通；不影响小程序内的定点提醒。'}}</view></view>
+        <view class="subscribe-entry-action">{{subscriptionConfigured ? '去授权 ›' : '暂未开通'}}</view>
+      </view>
+
+      <view class="app-form-field">
+        <view class="app-form-label">提前多少天提示补充</view>
+        <input class="app-form-input" type="number" value="{{planDraft.stockWarningDays}}" data-field="stockWarningDays" bindinput="onPlanInput" placeholder="默认 7 天" />
+      </view>
+
+      <view class="app-form-field">
+        <view class="app-form-label"><text class="app-form-required">*</text> 提醒时间</view>
+        <view
+          wx:for="{{planDraft.reminderTimes}}"
+          wx:key="*this"
+          wx:for-index="idx"
+          class="plan-time-row"
+        >
+          <picker mode="time" value="{{item}}" data-index="{{idx}}" bindchange="onPlanTimeChange">
+            <view class="app-form-picker plan-time-picker">{{item || '请选择时间'}}</view>
+          </picker>
+          <view class="plan-time-remove" data-index="{{idx}}" bindtap="removePlanTime">移除</view>
+        </view>
+        <view class="mini-btn plan-add-time" bindtap="addPlanTime">+ 添加提醒时间</view>
+      </view>
+
+      <view class="form-two-col">
+        <view class="app-form-field">
+          <view class="app-form-label"><text class="app-form-required">*</text> 开始日期</view>
+          <picker mode="date" value="{{planDraft.startDate}}" data-field="startDate" bindchange="onPlanDateChange">
+            <view class="app-form-picker">{{planDraft.startDate || '请选择'}}</view>
+          </picker>
+        </view>
+        <view class="app-form-field">
+          <view class="app-form-label">结束日期</view>
+          <picker mode="date" value="{{planDraft.endDate}}" data-field="endDate" bindchange="onPlanDateChange">
+            <view class="app-form-picker">{{planDraft.endDate || '长期'}}</view>
+          </picker>
+        </view>
+      </view>
+
+      <view class="switch-row">
+        <view>
+          <view class="switch-title">需要家人确认</view>
+          <view class="switch-desc">老人确认后，首页待确认数量会同步减少。</view>
+        </view>
+        <switch checked="{{planDraft.needGuardianConfirm}}" bindchange="onPlanConfirmChange" color="#2e7d6a" />
+      </view>
+
+      <view class="switch-row">
+        <view>
+          <view class="switch-title">启用计划</view>
+          <view class="switch-desc">关闭后不会继续生成新的今日提醒。</view>
+        </view>
+        <switch checked="{{planDraft.enabled}}" bindchange="onPlanEnabledChange" color="#2e7d6a" />
+      </view>
+
+      <view class="app-form-field">
+        <view class="app-form-label">备注</view>
+        <textarea class="app-form-textarea compact-textarea" value="{{planDraft.note}}" data-field="note" bindinput="onPlanInput" placeholder="例如：饭后服用；具体请遵医嘱"></textarea>
+      </view>
+
+      <view wx:if="{{planError}}" class="app-form-error">{{planError}}</view>
+      <view class="editor-actions">
+        <button class="editor-btn editor-btn-ghost" bindtap="closePlanEditor">取消</button>
+        <button class="editor-btn editor-btn-primary" loading="{{planSaving}}" disabled="{{planSaving}}" bindtap="savePlanDraft">{{planSaving ? '正在保存' : '保存计划'}}</button>
       </view>
     </view>
   </view>

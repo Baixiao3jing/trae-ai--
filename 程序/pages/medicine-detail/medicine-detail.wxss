@@ -119,6 +119,81 @@
   background: #fafafa;
 }
 
+/* 用药计划卡片 */
+.plan-card {
+  background: #fff;
+  border-radius: var(--radius-lg);
+  padding: 24rpx;
+  border: 1rpx solid var(--border);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 18rpx;
+}
+
+.plan-card.is-disabled {
+  opacity: 0.62;
+  background: #fafafa;
+}
+
+.plan-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 18rpx;
+  margin-bottom: 18rpx;
+}
+
+.plan-title {
+  font-size: 30rpx;
+  font-weight: 900;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.plan-subtitle {
+  margin-top: 6rpx;
+  font-size: 24rpx;
+  color: var(--text-light);
+  line-height: 1.5;
+}
+
+.plan-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14rpx;
+  margin-bottom: 20rpx;
+}
+
+.plan-cell {
+  background: var(--surface-alt);
+  border-radius: 14rpx;
+  padding: 14rpx 16rpx;
+  min-height: 92rpx;
+  box-sizing: border-box;
+}
+
+.plan-k {
+  font-size: 22rpx;
+  color: var(--text-muted);
+  margin-bottom: 4rpx;
+}
+
+.plan-v {
+  font-size: 26rpx;
+  color: var(--text);
+  font-weight: 700;
+  line-height: 1.35;
+  word-break: break-all;
+}
+
+.plan-op-row {
+  display: flex;
+  gap: 16rpx;
+}
+
+.compact-placeholder {
+  padding-top: 22rpx;
+}
+
 /* Hero */
 .hero {
   position: relative;
@@ -667,6 +742,65 @@
   min-height: 150rpx;
 }
 
+.plan-time-row {
+  display: grid;
+  grid-template-columns: 1fr 120rpx;
+  gap: 14rpx;
+  align-items: center;
+  margin-bottom: 14rpx;
+}
+
+.plan-time-picker {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.plan-time-remove {
+  height: 72rpx;
+  line-height: 72rpx;
+  text-align: center;
+  border-radius: 999rpx;
+  background: #fff;
+  border: 1rpx solid #f5b7b1;
+  color: var(--danger);
+  font-size: 24rpx;
+  font-weight: 700;
+}
+
+.plan-add-time {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 4rpx;
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20rpx;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid var(--border);
+}
+.subscribe-entry { display: flex; align-items: center; justify-content: space-between; gap: 20rpx; padding: 22rpx 0; border-bottom: 1rpx solid var(--border); }
+.subscribe-entry-action { flex-shrink: 0; color: var(--primary-dark); font-size: 25rpx; font-weight: 800; }
+.subscribe-entry.is-disabled { background: #f5f7f6; border-color: #dce5e1; }
+.subscribe-entry.is-disabled .subscribe-entry-action { color: #87958f; }
+.plan-readonly-notice { margin-bottom: 20rpx; }
+
+.switch-title {
+  font-size: 28rpx;
+  color: var(--text);
+  font-weight: 800;
+}
+
+.switch-desc {
+  margin-top: 4rpx;
+  font-size: 23rpx;
+  color: var(--text-light);
+  line-height: 1.5;
+}
+
 .editor-actions {
   position: sticky;
   bottom: 0;
@@ -676,6 +810,20 @@
   grid-template-columns: 1fr 1fr;
   gap: 18rpx;
 }
+.usage-forecast-card {
+  margin-bottom: 20rpx;
+  padding: 26rpx;
+  border: 1rpx solid var(--primary-light);
+  border-radius: var(--radius-lg);
+  background: var(--primary-bg);
+}
+.usage-forecast-warning { background: #fff8e1; border-color: #f1cf76; }
+.usage-forecast-title { font-size: 30rpx; font-weight: 900; color: var(--text); }
+.usage-forecast-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12rpx; margin-top: 20rpx; }
+.usage-forecast-grid > view { min-width: 0; text-align: center; }
+.usage-forecast-value { display: block; font-size: 36rpx; font-weight: 900; color: var(--primary-dark); }
+.usage-forecast-unit { display: block; margin-top: 4rpx; font-size: 21rpx; color: var(--text-light); }
+.usage-forecast-desc { margin-top: 18rpx; font-size: 24rpx; color: var(--text-light); line-height: 1.6; }
 
 .editor-btn {
   margin: 0;

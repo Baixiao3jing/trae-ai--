@@ -46,6 +46,7 @@
         这里记录家庭成员对药品台账的重要操作，方便追溯和确认。点击单条记录可查看详情。
       </view>
     </view>
+    <view wx:if="{{syncText}}" class="app-sync-status">{{syncText}}</view>
 
     <!-- 操作类型颜色图例 -->
     <view class="legend">
@@ -102,6 +103,10 @@
         </view>
         <view class="log-time">{{item.time}}</view>
       </view>
+    </view>
+    <view wx:if="{{logs.length === 0}}" class="app-empty">
+      <view class="app-empty-title">还没有操作记录</view>
+      <view class="app-empty-desc">家庭成员新增药品、修改批次或确认服药后会显示在这里。</view>
     </view>
 
     <!-- 底部小提示 -->

@@ -1,5 +1,8 @@
 <!--pages/index/index.wxml-->
 <view class="page">
+  <view wx:if="{{cloudSync.status === 'syncing' || cloudSync.status === 'failed'}}" class="app-sync-status app-sync-status-{{cloudSync.status}}">
+    {{cloudSync.text}}
+  </view>
   <!-- ===== 空家庭阶段：引导创建家庭 ===== -->
   <block wx:if="{{stage === 'noFamily'}}">
     <view class="hero hero-empty">
@@ -130,6 +133,11 @@
     </view>
 
     <view class="container">
+      <view wx:if="{{pendingAudit}}" class="monthly-audit-card" bindtap="goInventoryAudit">
+        <view class="monthly-audit-icon">盘</view>
+        <view class="monthly-audit-main"><view class="monthly-audit-title">{{pendingAudit.period}} 药箱待盘点</view><view class="monthly-audit-desc">核对实际库存，修正服药扣减产生的账实差异</view></view>
+        <view class="monthly-audit-arrow">›</view>
+      </view>
       <view class="sync-tip-box">
         <view class="sync-tip-icon">🔁</view>
         <view class="sync-tip-content">

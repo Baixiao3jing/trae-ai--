@@ -43,15 +43,15 @@
       </view>
     </view>
 
-    <!-- 3. OCR 图片处理说明 -->
+    <!-- 3. 药盒封面处理说明 -->
     <view class="card info-card">
       <view class="card-title">
         <text class="card-title-icon">📷</text>
-        OCR 图片处理说明
+        药盒封面处理说明
       </view>
       <view class="info-text">
-        药盒图片<b>仅用于识别药品名称、批号、生产日期和有效期</b>。
-        识别完成后不长期保存原图，只保留用户确认后的结构化字段，避免图片泄露风险。
+        用户主动选择的药盒照片会作为<b>家庭识别封面</b>保存到微信云空间，仅当前家庭成员可见。
+        用户可以在药品详情中替换或移除封面，图片不用于诊断、真伪鉴定或用药判断。
       </view>
     </view>
 
@@ -81,7 +81,7 @@
     </view>
 
     <!-- 入口：访问记录 -->
-    <view class="card nav-card" bindtap="goAccessLogs">
+    <view wx:if="{{canAccessLogs}}" class="card nav-card" bindtap="goAccessLogs">
       <view class="nav-icon" style="background: #f5eef9; color: #8e44ad;">📋</view>
       <view class="nav-main">
         <view class="nav-title">查看访问与操作记录</view>
@@ -97,23 +97,15 @@
         用户可控操作
       </view>
 
-      <view class="action-item action-primary" bindtap="onExport">
-        <view class="action-icon" style="background: #eef5f1; color: #2e7d6a;">📤</view>
-        <view class="action-main">
-          <view class="action-label">导出药品台账</view>
-          <view class="action-desc">CSV 格式 · 含药品、批次、位置、数量字段</view>
-        </view>
-      </view>
-
       <view class="action-item" bindtap="onClearPersonal">
         <view class="action-icon" style="background: #fff8e1; color: #f39c12;">🧹</view>
         <view class="action-main">
-          <view class="action-label">清空个人数据</view>
-          <view class="action-desc">清除本地缓存与个性化配置</view>
+          <view class="action-label">清理本机缓存</view>
+          <view class="action-desc">不会退出家庭，清理后重新同步云端数据</view>
         </view>
       </view>
 
-      <view class="action-item" bindtap="onLeaveFamily">
+      <view wx:if="{{canLeave}}" class="action-item" bindtap="onLeaveFamily">
         <view class="action-icon" style="background: #fdecea; color: #e74c3c;">🚪</view>
         <view class="action-main">
           <view class="action-label">退出家庭</view>
@@ -121,13 +113,14 @@
         </view>
       </view>
 
-      <view class="action-item action-danger" bindtap="onDeleteFamily">
+      <view wx:if="{{canDeleteFamily}}" class="action-item action-danger" bindtap="onDeleteFamily">
         <view class="action-icon" style="background: #fdecea; color: #c0392b;">🗑</view>
         <view class="action-main">
-          <view class="action-label">删除家庭空间</view>
-          <view class="action-desc">不可恢复 · 需二次确认邀请码</view>
+          <view class="action-label">{{isDeletingFamily ? '正在删除家庭...' : '删除家庭空间'}}</view>
+          <view class="action-desc">永久删除所有家庭成员、药品、提醒和云端封面</view>
         </view>
       </view>
+
     </view>
 
     <view class="bottom-space"></view>

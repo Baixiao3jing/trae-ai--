@@ -1,0 +1,11 @@
+# Local build and preview output
+artifacts/
+
+# WeChat DevTools and local caches
+*.log
+*.tmp
+*.zip
+node_modules/
+
+# Office temporary lock files
+~$*.docx

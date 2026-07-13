@@ -349,10 +349,11 @@
     <block wx:if="{{noFamily}}">
       <view class="no-family-overlay">
         <view class="no-family-card">
-          <view class="no-family-icon">🏠</view>
-          <view class="no-family-title">请先创建家庭药箱</view>
-          <view class="no-family-desc">创建家庭后才能开始录入药品、管理有效期和邀请家人。</view>
-          <view class="no-family-btn" bindtap="goCreateFamily">去创建家庭</view>
+          <view class="no-family-icon">{{noEditPermission ? '🔒' : '🏠'}}</view>
+          <view class="no-family-title">{{noEditPermission ? '当前为只读成员' : '请先创建家庭药箱'}}</view>
+          <view class="no-family-desc">{{noEditPermission ? '请联系家庭管理员开启药品编辑权限。' : '创建家庭后才能开始录入药品、管理有效期和邀请家人。'}}</view>
+          <view wx:if="{{!noEditPermission}}" class="no-family-btn" bindtap="goCreateFamily">去创建家庭</view>
+          <view wx:else class="no-family-btn" bindtap="onGoMedicines">返回药箱</view>
         </view>
       </view>
     </block>

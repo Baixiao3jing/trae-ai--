@@ -1,11 +1,13 @@
 // pages/family/family.js
 // 药无忧第六阶段：真实从零流程家庭管理
 // - 无家庭 → 显示创建家庭表单（家庭名称、管理员姓名、家庭备注）
-// - 有家庭 → 家庭概览 + 成员 + 邀请（支持微信分享 / 邀请码 / 预设关系模板快速本地录入）
+// - 有家庭 → 家庭概览 + 成员 + 微信分享 / 邀请码邀请
 // - invite=1 参数：自动打开邀请弹窗
 // - autoCreate=1 参数：默认无家庭时已自动显示创建表单，无需额外跳转
 
 const appStore = require('../../utils/appStore.js');
+const cloudStore = require('../../utils/cloudStore.js');
+const syncManager = require('../../utils/syncManager.js');
 const ENABLE_DEMO_TOOLS = appStore.ENABLE_DEMO_TOOLS === true;
 
 const ROLE_PERMISSIONS = [
@@ -47,7 +49,7 @@ function buildPermissionSummary(mem) {
 Page({
   data: {
     // 阶段
-    stage: 'noFamily', // noFamily | hasFamily
+    stage: 'noFamily', // inviteLoading | inviteJoin | inviteInvalid | inviteConflict | noFamily | hasFamily
     // 创建家庭表单
     form: {
       familyName: '',
@@ -57,14 +59,24 @@ Page({
     // 家庭状态
     family: null,
     members: [],
+    cloudSyncText: '',
+    cloudShareReady: false,
+    cloudChecking: false,
+    cloudMode: cloudStore.isCloudEnabled(),
+    isAdmin: false,
+    inviteCodeFromLink: '',
+    invitePreview: null,
+    inviteErrorText: '',
+    existingFamilyName: '',
+    existingFamilyId: '',
+    joinForm: {
+      name: '',
+      relation: '',
+      role: 'member'
+    },
     rolePermissions: ROLE_PERMISSIONS,
     showInvite: false,
     showElderAgreement: false,
-    showQuickAdd: false, // 预设关系模板快速本地录入
-    selectedTemplateKey: '', // 当前已选中的模板 key（elder_male/elder_female/...），空则未选
-    pendingTemplateKey: '', // 选中后未填姓名的模板键
-    showCustomName: false, // 需要输入自定义姓名弹窗
-    customMemberName: '',
     overview: {
       totalMemberCount: 0,
       elderCount: 0,
@@ -78,7 +90,15 @@ Page({
 
   // ===== 生命周期 =====
   onLoad(options) {
-    this._refresh();
+    if (options && options.inviteCode) {
+      this.setData({
+        inviteCodeFromLink: String(options.inviteCode || '').trim().toUpperCase(),
+        stage: 'inviteLoading'
+      });
+      this.validateInvitePreview();
+    } else {
+      this._refresh();
+    }
     if (options && options.invite === '1') {
       // 有家庭才允许打开邀请
       const s = appStore.readAppState();
@@ -89,7 +109,120 @@ Page({
   },
 
   onShow() {
+    if (this.data.inviteCodeFromLink) {
+      if (this.data.stage === 'inviteLoading' && !this._inviteValidationPending) {
+        this.validateInvitePreview();
+      }
+      return;
+    }
     this._refresh();
+    this.refreshCloudSnapshot();
+  },
+  validateInvitePreview() {
+    const inviteCode = String(this.data.inviteCodeFromLink || '').trim().toUpperCase();
+    if (!inviteCode || this._inviteValidationPending) return;
+    if (!cloudStore.isCloudEnabled()) {
+      this.setData({
+        stage: 'inviteInvalid',
+        inviteErrorText: '云同步暂不可用，无法验证这份邀请。'
+      });
+      return;
+    }
+    this._inviteValidationPending = true;
+    this.setData({ stage: 'inviteLoading', inviteErrorText: '' });
+    cloudStore.getInvitePreview(inviteCode).then(preview => {
+      if (inviteCode !== this.data.inviteCodeFromLink) return;
+      const family = preview.family || {};
+      const invitePreview = {
+        familyId: family.id || family._id || '',
+        familyName: family.name || '家庭药箱',
+        expiresText: preview.inviteExpiresAtMs ? this._formatInviteDate(preview.inviteExpiresAtMs) : ''
+      };
+      if (preview.alreadyJoined && invitePreview.familyId) {
+        return cloudStore.getFamilySnapshot(invitePreview.familyId).then(snapshot => {
+          appStore.syncFromCloudSnapshot(snapshot);
+          this.setData({ inviteCodeFromLink: '', invitePreview: null });
+          this._refresh();
+        });
+      }
+      if (preview.conflict) {
+        this.setData({
+          stage: 'inviteConflict',
+          invitePreview,
+          existingFamilyName: (preview.currentFamily && preview.currentFamily.name) || '当前家庭',
+          existingFamilyId: (preview.currentFamily && preview.currentFamily.id) || ''
+        });
+        return;
+      }
+      this.setData({ stage: 'inviteJoin', invitePreview, existingFamilyName: '' });
+    }).catch(err => {
+      const message = (err && err.message) || '暂时无法验证邀请';
+      const invalid = /不存在|失效|过期|撤销|缺少邀请码/.test(message);
+      this.setData({
+        stage: 'inviteInvalid',
+        inviteErrorText: invalid ? message : '暂时无法验证邀请，请检查网络后重试。'
+      });
+    }).finally(() => {
+      this._inviteValidationPending = false;
+    });
+  },
+  _formatInviteDate(timestamp) {
+    const d = new Date(Number(timestamp));
+    if (Number.isNaN(d.getTime())) return '';
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  },
+  retryInvitePreview() {
+    this.validateInvitePreview();
+  },
+  cancelInvite() {
+    this.setData({
+      inviteCodeFromLink: '',
+      invitePreview: null,
+      inviteErrorText: '',
+      existingFamilyName: '',
+      existingFamilyId: ''
+    });
+    if (appStore.hasFamily()) {
+      this._refresh();
+      return;
+    }
+    wx.switchTab({ url: '/pages/index/index' });
+  },
+  viewCurrentFamily() {
+    const familyId = this.data.existingFamilyId;
+    if (!familyId) {
+      this.cancelInvite();
+      return;
+    }
+    wx.showLoading({ title: '正在打开家庭...' });
+    cloudStore.getFamilySnapshot(familyId).then(snapshot => {
+      appStore.syncFromCloudSnapshot(snapshot);
+      wx.hideLoading();
+      this.setData({ inviteCodeFromLink: '', invitePreview: null, existingFamilyId: '' });
+      this._refresh();
+    }).catch(err => {
+      wx.hideLoading();
+      wx.showToast({ title: (err && err.message) || '家庭加载失败', icon: 'none' });
+    });
+  },
+  refreshCloudSnapshot() {
+    const familyId = appStore.getActiveFamilyId();
+    if (!familyId || !cloudStore.isCloudEnabled()) return;
+    this.setData({ cloudChecking: true });
+    syncManager.refreshFamily(familyId, { ensureToday: true }).then(() => {
+      this.setData({
+        cloudSyncText: '云同步已连接',
+        cloudShareReady: true,
+        cloudChecking: false
+      });
+      this._refresh();
+    }).catch(() => {
+      this.setData({
+        cloudSyncText: '云同步暂不可用，当前显示本地缓存',
+        cloudShareReady: false,
+        cloudChecking: false
+      });
+    });
   },
 
   _refresh() {
@@ -101,7 +234,9 @@ Page({
           familyName: '',
           adminName: s.currentUser && s.currentUser.name && s.currentUser.name !== '当前用户' ? s.currentUser.name : '',
           note: ''
-        }
+        },
+        cloudSyncText: cloudStore.isCloudEnabled() ? '云同步已启用' : '当前为本地模式',
+        cloudShareReady: false
       });
       return;
     }
@@ -116,10 +251,12 @@ Page({
     const batches = s.medicineBatches || [];
     const elderCount = members.filter(m => m.role === 'elder').length;
     const admin = members.find(m => m.role === 'admin') || s.currentUser;
+    const isAdmin = !!(s.currentUser && s.currentUser.role === 'admin');
     this.setData({
       stage: 'hasFamily',
       family,
       members,
+      isAdmin,
       overview: {
         totalMemberCount: members.length,
         elderCount,
@@ -133,7 +270,11 @@ Page({
         inviterRelation: s.currentUser.relation || '家人',
         familyName: family.name,
         inviteCode: family.inviteCode
-      }
+      },
+      cloudSyncText: this.data.cloudSyncText === '云同步已连接'
+        ? '云同步已连接'
+        : (cloudStore.isCloudEnabled() ? '云同步已启用' : '当前为本地模式'),
+      cloudShareReady: this.data.cloudShareReady === true
     });
   },
 
@@ -153,6 +294,38 @@ Page({
       wx.showToast({ title: '请填写家庭名称', icon: 'none' });
       return;
     }
+    if (cloudStore.isCloudEnabled()) {
+      wx.showLoading({ title: '创建云家庭...' });
+      cloudStore.createFamily({
+        familyName: familyName.trim(),
+        adminName: adminName ? adminName.trim() : '',
+        note: note ? note.trim() : ''
+      }).then(res => {
+        const familyId = res.family && (res.family.id || res.family._id);
+        if (!familyId) throw new Error('云端未返回家庭 ID');
+        return cloudStore.getFamilySnapshot(familyId);
+      }).then(snapshot => {
+        appStore.syncFromCloudSnapshot(snapshot);
+        wx.hideLoading();
+        this.setData({
+          cloudSyncText: '云同步已连接',
+          cloudShareReady: true
+        });
+        wx.showToast({ title: '家庭创建成功', icon: 'success', duration: 1200 });
+        setTimeout(() => wx.switchTab({ url: '/pages/index/index' }), 900);
+      }).catch(err => {
+        wx.hideLoading();
+        wx.showToast({ title: (err && err.message) || '云端创建失败，请检查云函数', icon: 'none' });
+        this.setData({
+          cloudSyncText: '云同步暂不可用，不能分享本地家庭',
+          cloudShareReady: false
+        });
+      });
+      return;
+    }
+    this._createFamilyLocal(familyName, adminName, note);
+  },
+  _createFamilyLocal(familyName, adminName, note) {
     try {
       appStore.createFamily({
         familyName: familyName.trim(),
@@ -168,6 +341,54 @@ Page({
       wx.showToast({ title: (e && e.message) || '创建失败', icon: 'none' });
     }
   },
+  onJoinNameInput(e) {
+    this.setData({ 'joinForm.name': e.detail.value });
+  },
+  onJoinRelationInput(e) {
+    this.setData({ 'joinForm.relation': e.detail.value });
+  },
+  chooseJoinRole(e) {
+    this.setData({ 'joinForm.role': e.currentTarget.dataset.role });
+  },
+  submitJoinByInvite() {
+    const inviteCode = this.data.inviteCodeFromLink;
+    const name = String(this.data.joinForm.name || '').trim();
+    if (!inviteCode) {
+      wx.showToast({ title: '缺少邀请码', icon: 'none' });
+      return;
+    }
+    if (!name) {
+      wx.showToast({ title: '请填写姓名或称呼', icon: 'none' });
+      return;
+    }
+    if (!cloudStore.isCloudEnabled()) {
+      wx.showToast({ title: '请先配置云开发环境', icon: 'none' });
+      return;
+    }
+    wx.showLoading({ title: '加入家庭...' });
+    cloudStore.joinFamilyByInvite({
+      inviteCode,
+      name,
+      relation: String(this.data.joinForm.relation || '').trim(),
+      role: this.data.joinForm.role
+    }).then(res => {
+      const familyId = res.family && (res.family.id || res.family._id);
+      return cloudStore.getFamilySnapshot(familyId);
+    }).then(snapshot => {
+      appStore.syncFromCloudSnapshot(snapshot);
+      wx.hideLoading();
+      this.setData({
+        cloudSyncText: '云同步已连接',
+        cloudShareReady: true
+      });
+      wx.showToast({ title: '已加入家庭', icon: 'success' });
+      this.setData({ inviteCodeFromLink: '' });
+      this._refresh();
+    }).catch(err => {
+      wx.hideLoading();
+      wx.showToast({ title: (err && err.message) || '加入失败', icon: 'none' });
+    });
+  },
 
   // ===== 邀请 =====
   openInvite() {
@@ -176,6 +397,37 @@ Page({
       return;
     }
     this.setData({ showInvite: true });
+  },
+  checkCloudSync() {
+    if (!cloudStore.isCloudEnabled()) {
+      wx.showToast({ title: '请先配置云环境 ID', icon: 'none' });
+      this.setData({
+        cloudSyncText: '当前为本地模式',
+        cloudShareReady: false
+      });
+      return;
+    }
+    const familyId = appStore.getActiveFamilyId();
+    if (familyId) {
+      this.refreshCloudSnapshot();
+      return;
+    }
+    this.setData({ cloudChecking: true });
+    syncManager.bootstrap().then(() => {
+      this.setData({
+        cloudSyncText: '云同步已连接',
+        cloudShareReady: false,
+        cloudChecking: false
+      });
+      wx.showToast({ title: '云同步已连接', icon: 'success' });
+    }).catch(err => {
+      this.setData({
+        cloudSyncText: '云同步暂不可用，当前显示本地缓存',
+        cloudShareReady: false,
+        cloudChecking: false
+      });
+      wx.showToast({ title: (err && err.message) || '云连接失败', icon: 'none' });
+    });
   },
   closeInvite() {
     this.setData({ showInvite: false });
@@ -187,14 +439,8 @@ Page({
     this.setData({ showElderAgreement: false });
   },
   onAgreeJoin() {
-    // 看了长辈授权说明后，选择添加一位长辈（需要填写姓名）
-    this.setData({
-      showElderAgreement: false,
-      showQuickAdd: true,
-      pendingTemplateKey: 'elder_male',
-      showCustomName: true,
-      customMemberName: ''
-    });
+    this.setData({ showElderAgreement: false, showInvite: true });
+    this.copyInviteCode();
   },
 
   copyInviteCode() {
@@ -205,80 +451,23 @@ Page({
     });
   },
   shareInvite() {
-    if (!this.data.family) return;
-    wx.showModal({
-      title: '微信分享邀请',
-      content: `已生成分享邀请：邀请「${this.data.family.name}」成员\n邀请码：${this.data.family.inviteCode}\n请点击右上角「···」选择分享给家人。`,
-      showCancel: false,
-      confirmText: '我知道了'
-    });
-  },
-
-  // ===== 预设关系模板快速本地录入 =====
-  openQuickAdd() {
-    this.setData({
-      showInvite: false,
-      showQuickAdd: true,
-      pendingTemplateKey: '',
-      showCustomName: false,
-      customMemberName: ''
-    });
-  },
-  closeQuickAdd() {
-    this.setData({
-      showQuickAdd: false,
-      pendingTemplateKey: '',
-      showCustomName: false,
-      customMemberName: ''
-    });
-  },
-  onTemplatePick(e) {
-    const type = e.currentTarget.dataset.type; // elder_male | elder_female | spouse | child | other
-    const templates = appStore.PRESET_MEMBER_TEMPLATES || {};
-    const tpl = templates[type] || templates.other || {};
-    // 如果模板已预填姓名（ENABLE_DEMO_TOOLS 时），直接加入；否则打开姓名输入
-    const prefName = tpl.name && tpl.name.trim();
-    if (prefName) {
-      this.setData({ showQuickAdd: false });
-      this._addMemberByTemplate(type);
-      return;
+    if (!this.data.cloudShareReady) {
+      wx.showToast({ title: '请先确认云同步成功', icon: 'none' });
     }
-    this.setData({
-      pendingTemplateKey: type,
-      showCustomName: true,
-      customMemberName: ''
-    });
   },
-  onCustomNameInput(e) {
-    this.setData({ customMemberName: e.detail.value });
-  },
-  confirmCustomMember() {
-    const key = this.data.pendingTemplateKey;
-    const name = String(this.data.customMemberName || '').trim();
-    if (!name) {
-      wx.showToast({ title: '请填写家人姓名或称呼', icon: 'none' });
-      return;
+  onShareAppMessage() {
+    const family = this.data.family || {};
+    const inviteCode = family.inviteCode || '';
+    if (!this.data.cloudShareReady || !inviteCode) {
+      return {
+        title: '药无忧家庭药箱',
+        path: '/pages/family/family'
+      };
     }
-    this.setData({
-      showQuickAdd: false,
-      showCustomName: false,
-      customMemberName: '',
-      pendingTemplateKey: ''
-    });
-    this._addMemberByTemplate(key, name);
-  },
-  _addMemberByTemplate(templateKey, customName) {
-    try {
-      const m = appStore.addMemberFromTemplate(templateKey, customName);
-      wx.showToast({
-        title: `已添加：${m.name}`,
-        icon: 'success',
-        duration: 1400
-      });
-      setTimeout(() => this._refresh(), 250);
-    } catch (e) {
-      wx.showToast({ title: (e && e.message) || '添加失败', icon: 'none' });
-    }
+    return {
+      title: `${family.name || '家庭药箱'}邀请你加入药无忧`,
+      path: `/pages/family/family?inviteCode=${inviteCode}`
+    };
   },
 
   // ===== 成员操作 =====
@@ -290,19 +479,94 @@ Page({
       wx.showToast({ title: '这是你自己', icon: 'none' });
       return;
     }
-    const isAdmin = member.role === 'admin';
+    const current = appStore.getCurrentUser();
+    const canManage = current && current.role === 'admin';
+    const actions = [{ key: 'view', label: '查看资料' }];
+    if (canManage) {
+      actions.push({ key: 'role', label: member.role === 'elder' ? '设为家庭成员' : '设为老人' });
+      if (member.role !== 'elder') actions.push({ key: 'edit', label: member.canEdit ? '关闭编辑权限' : '开启编辑权限' });
+      actions.push({ key: 'transfer', label: '转让管理员身份' });
+      actions.push({ key: 'remove', label: '移除成员' });
+    }
     wx.showActionSheet({
-      itemList: ['查看资料', isAdmin ? '取消管理员' : '设为管理员', '移除成员'],
+      itemList: actions.map(item => item.label),
       success: (res) => {
-        if (res.tapIndex === 0) {
+        const action = actions[res.tapIndex];
+        if (!action) return;
+        if (action.key === 'view') {
           wx.showModal({
             title: `${member.avatar || '👤'} ${member.name}`,
             content: `关系：${member.relation}\n角色：${member.roleLabel || member.role}\n编辑权限：${member.editableText}\n加入时间：${member.joinTime}\n权限：${member.permissionSummary}`,
             showCancel: false
           });
-        } else {
-          wx.showToast({ title: '家庭管理功能开发中', icon: 'none' });
+          return;
         }
+        this.runMemberAction(action.key, member);
+      }
+    });
+  },
+
+  runMemberAction(action, member) {
+    const familyId = appStore.getActiveFamilyId();
+    const refresh = promise => promise
+      .then(() => syncManager.refreshFamily(familyId))
+      .then(() => this._refresh());
+    if (action === 'role') {
+      refresh(cloudStore.updateFamilyMember(familyId, member.id, {
+        role: member.role === 'elder' ? 'member' : 'elder',
+        canEdit: false
+      })).then(() => wx.showToast({ title: '成员身份已更新', icon: 'success' }))
+        .catch(err => wx.showToast({ title: err.message || '更新失败', icon: 'none' }));
+      return;
+    }
+    if (action === 'edit') {
+      refresh(cloudStore.updateFamilyMember(familyId, member.id, { role: 'member', canEdit: !member.canEdit }))
+        .then(() => wx.showToast({ title: member.canEdit ? '已关闭编辑权限' : '已开启编辑权限', icon: 'success' }))
+        .catch(err => wx.showToast({ title: err.message || '更新失败', icon: 'none' }));
+      return;
+    }
+    if (action === 'transfer') {
+      wx.showModal({
+        title: '转让管理员',
+        content: `确定将管理员身份转让给「${member.name}」吗？转让后你将成为普通家庭成员。`,
+        confirmColor: '#e67e22',
+        success: res => {
+          if (!res.confirm) return;
+          refresh(cloudStore.transferFamilyAdmin(familyId, member.id))
+            .then(() => wx.showToast({ title: '管理员已转让', icon: 'success' }))
+            .catch(err => wx.showToast({ title: err.message || '转让失败', icon: 'none' }));
+        }
+      });
+      return;
+    }
+    if (action === 'remove') {
+      wx.showModal({
+        title: '移除成员',
+        content: `确定将「${member.name}」移出家庭吗？`,
+        confirmColor: '#e74c3c',
+        success: res => {
+          if (!res.confirm) return;
+          refresh(cloudStore.removeFamilyMember(familyId, member.id))
+            .then(() => wx.showToast({ title: '成员已移除', icon: 'success' }))
+            .catch(err => wx.showToast({ title: err.message || '移除失败', icon: 'none' }));
+        }
+      });
+    }
+  },
+
+  rotateInviteCode() {
+    if (!this.data.isAdmin) return;
+    const familyId = appStore.getActiveFamilyId();
+    wx.showModal({
+      title: '重新生成邀请码',
+      content: '旧邀请码会立即失效，新邀请码有效期为 30 天。',
+      confirmColor: '#2e7d6a',
+      success: res => {
+        if (!res.confirm) return;
+        cloudStore.rotateInviteCode(familyId)
+          .then(() => syncManager.refreshFamily(familyId))
+          .then(() => { this._refresh(); wx.showToast({ title: '邀请码已更新', icon: 'success' }); })
+          .catch(err => wx.showToast({ title: err.message || '更新失败', icon: 'none' }));
       }
     });
   },

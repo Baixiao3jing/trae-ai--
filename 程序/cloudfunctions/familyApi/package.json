@@ -1,0 +1,9 @@
+{
+  "name": "familyApi",
+  "version": "1.0.0",
+  "description": "药无忧家庭云同步 API",
+  "main": "index.js",
+  "dependencies": {
+    "wx-server-sdk": "~2.6.3"
+  }
+}

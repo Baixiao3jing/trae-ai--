@@ -146,6 +146,19 @@ page {
   line-height: 1.6;
 }
 
+.app-sync-status {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 14rpx 32rpx;
+  font-size: 24rpx;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--text-secondary, #60716c);
+  background: #edf6f2;
+}
+.app-sync-status-syncing { color: #2e7d6a; }
+.app-sync-status-failed { color: #a85d13; background: #fff7e7; }
+
 .page {
   min-height: 100vh;
   box-sizing: border-box;

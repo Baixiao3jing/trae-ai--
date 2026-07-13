@@ -31,6 +31,7 @@ const {
   FILTER_META,
   PICKER_OPTIONS
 } = require('./mockData.js');
+const reminderPolicy = require('./reminderPolicy.js');
 
 // ==================== Storage Key ====================
 const APP_STATE_KEY = 'yaowuyou_app_state_v1';
@@ -63,6 +64,12 @@ function _medicineCoverText(medicine) {
   const category = String((medicine && medicine.category) || '').trim();
   return category ? category.slice(0, 1) : '药';
 }
+function _normalizeCloudRow(row) {
+  if (!row || typeof row !== 'object') return row;
+  const out = Object.assign({}, row);
+  if (!out.id && out._id) out.id = out._id;
+  return out;
+}
 function _addAccessLog(state, { action, target, actionType }) {
   state.accessLogs = state.accessLogs || [];
   state.accessLogs.unshift({
@@ -80,6 +87,24 @@ function _normalizeQuantity(value, label, allowZero) {
     throw new Error(`${label}必须${allowZero ? '不小于 0' : '大于 0'}`);
   }
   return n;
+}
+function _normalizeTimeText(time) {
+  const t = String(time || '').trim();
+  const m = t.match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return '';
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h < 0 || h > 23 || min < 0 || min > 59) return '';
+  return `${_pad(h)}:${_pad(min)}`;
+}
+function _todayDateTime(time) {
+  return `${_nowDateStr()} ${_normalizeTimeText(time) || '08:00'}`;
+}
+function _recordStatusForScheduledTime(scheduledTime) {
+  const time = String(scheduledTime || '').split(' ')[1] || '00:00';
+  const now = new Date();
+  const current = `${_pad(now.getHours())}:${_pad(now.getMinutes())}`;
+  return time > current ? 'upcoming' : 'pending';
 }
 
 // ==================== 空状态初始值 ====================
@@ -100,6 +125,11 @@ function _initialState() {
     medicineBatches: [],
     medicationPlans: [],
     medicationRecords: [],
+    inventoryMovements: [],
+    inventoryAudits: [],
+    inventoryAuditItems: [],
+    inventoryAuditSettings: { enabled: true, dayOfMonth: 1, reminderTime: '19:00' },
+    notificationSettings: null,
     accessLogs: []
   };
 }
@@ -149,6 +179,47 @@ function getCurrentFamily() {
   return f ? _clone(f) : null;
 }
 function getMembers() { return _clone(readAppState().members); }
+function clearFamilyCache() {
+  const s = readAppState();
+  const next = _initialState();
+  next.currentUser = Object.assign({}, next.currentUser, {
+    id: s.currentUser && s.currentUser.id ? s.currentUser.id : next.currentUser.id,
+    name: s.currentUser && s.currentUser.name ? s.currentUser.name : next.currentUser.name
+  });
+  next.members = [{ ...next.currentUser, joinTime: _nowDateStr() }];
+  _writeAppState(next);
+  return _clone(next);
+}
+function getActiveFamilyId() {
+  const f = readAppState().currentFamily;
+  return f ? (f.id || f._id) : '';
+}
+function syncFromCloudSnapshot(snapshot) {
+  if (!snapshot || !snapshot.family) return readAppState();
+  const s = readAppState();
+  s.currentFamily = _normalizeCloudRow(snapshot.family);
+  s.members = (snapshot.members || []).map(m => _normalizeCloudRow(m));
+  s.medicines = (snapshot.medicines || []).map(m => _normalizeCloudRow(m));
+  s.medicineBatches = (snapshot.medicineBatches || []).map(b => _normalizeCloudRow(b));
+  s.medicationPlans = (snapshot.medicationPlans || []).map(p => _normalizeCloudRow(p));
+  s.medicationRecords = (snapshot.medicationRecords || []).map(r => _normalizeCloudRow(r));
+  s.inventoryMovements = (snapshot.inventoryMovements || []).map(r => _normalizeCloudRow(r));
+  s.inventoryAudits = (snapshot.inventoryAudits || []).map(r => _normalizeCloudRow(r));
+  s.inventoryAuditItems = (snapshot.inventoryAuditItems || []).map(r => _normalizeCloudRow(r));
+  s.inventoryAuditSettings = snapshot.inventoryAuditSettings || s.inventoryAuditSettings;
+  s.notificationSettings = snapshot.notificationSettings || null;
+  s.accessLogs = (snapshot.accessLogs || []).map(l => _normalizeCloudRow(l));
+  const selfMember = snapshot.currentMember
+    ? _normalizeCloudRow(snapshot.currentMember)
+    : s.members.find(m => m.openid && snapshot.openid && m.openid === snapshot.openid);
+  if (selfMember) {
+    s.currentUser = Object.assign({}, s.currentUser, selfMember, {
+      id: selfMember.id || selfMember._id || s.currentUser.id
+    });
+  }
+  _writeAppState(s);
+  return _clone(s);
+}
 
 function createFamily({ familyName, adminName, note }) {
   const s = readAppState();
@@ -345,6 +416,7 @@ function addMedicineAndBatch(medicineForm, batchForm) {
       targetMemberIds: med.targetMemberIds || [],
       storageLocation: med.storageLocation || '',
       coverImage: med.coverImage || '',
+      coverImageCloudId: med.coverImageCloudId || '',
       coverSource: med.coverImage ? (med.coverSource || 'photo') : 'none'
     }, med);
     s.medicines.push(targetMed);
@@ -413,7 +485,7 @@ function updateMedicine(medicineId, patch) {
   const allowed = [
     'name', 'shortName', 'genericName', 'specification', 'category', 'manufacturer',
     'barcode', 'barcodeAliases', 'targetMemberIds', 'targetMemberLabel',
-    'customTargetMemberName', 'storageLocation', 'coverImage', 'coverSource'
+    'customTargetMemberName', 'storageLocation', 'coverImage', 'coverImageCloudId', 'coverSource'
   ];
   allowed.forEach(k => {
     if (!Object.prototype.hasOwnProperty.call(p, k)) return;
@@ -552,15 +624,205 @@ function setMedicineBatchStatus(batchId, status) {
 }
 
 // ==================== 4. 提醒计划 & 记录 ====================
-function getMedicationPlans() { return _clone(readAppState().medicationPlans || []); }
+function getMedicationPlans() { return _clone((readAppState().medicationPlans || []).filter(p => !p.duplicateOf)); }
+function getMedicationPlansByMedicine(medicineId) {
+  const plans = readAppState().medicationPlans || [];
+  return _clone(plans.filter(p => p.medicineId === medicineId && !p.duplicateOf));
+}
 function getMedicationRecords() { return _clone(readAppState().medicationRecords || []); }
+function _normalizePlanForm(planForm, existing) {
+  const p = planForm || {};
+  const medicineId = String(p.medicineId || (existing && existing.medicineId) || '').trim();
+  const memberId = String(p.memberId || (existing && existing.memberId) || '').trim();
+  const dosePerTime = String(p.dosePerTime || (existing && existing.dosePerTime) || '').trim();
+  const doseQuantity = Number(Object.prototype.hasOwnProperty.call(p, 'doseQuantity') ? p.doseQuantity : (existing && existing.doseQuantity));
+  const doseUnit = String(p.doseUnit || (existing && existing.doseUnit) || '').trim();
+  const startDate = String(p.startDate || (existing && existing.startDate) || _nowDateStr()).trim();
+  const endDate = String(Object.prototype.hasOwnProperty.call(p, 'endDate') ? p.endDate : (existing && existing.endDate) || '').trim();
+  const note = String(Object.prototype.hasOwnProperty.call(p, 'note') ? p.note : (existing && existing.note) || '').trim();
+  const reminderTimes = (p.reminderTimes || (existing && existing.reminderTimes) || [])
+    .map(_normalizeTimeText)
+    .filter(Boolean);
+  if (!medicineId) throw new Error('药品不能为空');
+  if (!memberId) throw new Error('使用人不能为空');
+  if (!dosePerTime) throw new Error('每次用量不能为空');
+  if (!Number.isFinite(doseQuantity) || doseQuantity <= 0) throw new Error('每次用量必须大于 0');
+  if (!doseUnit) throw new Error('用量单位不能为空');
+  if (!startDate) throw new Error('开始日期不能为空');
+  if (reminderTimes.length === 0) throw new Error('请至少设置一个提醒时间');
+  const uniqueTimes = Array.from(new Set(reminderTimes)).sort();
+  return {
+    clientRequestId: String(p.clientRequestId || (existing && existing.clientRequestId) || '').trim(),
+    medicineId,
+    memberId,
+    dosePerTime,
+    doseQuantity,
+    doseUnit,
+    deductStock: Object.prototype.hasOwnProperty.call(p, 'deductStock') ? !!p.deductStock : (existing ? existing.deductStock !== false : true),
+    stockWarningDays: Number(p.stockWarningDays || (existing && existing.stockWarningDays) || 7),
+    timesPerDay: uniqueTimes.length,
+    reminderTimes: uniqueTimes,
+    needGuardianConfirm: Object.prototype.hasOwnProperty.call(p, 'needGuardianConfirm')
+      ? !!p.needGuardianConfirm
+      : (existing ? !!existing.needGuardianConfirm : true),
+    enabled: Object.prototype.hasOwnProperty.call(p, 'enabled')
+      ? !!p.enabled
+      : (existing ? existing.enabled !== false : true),
+    startDate,
+    endDate,
+    note
+  };
+}
+function _isPlanActiveToday(plan) {
+  const today = _nowDateStr();
+  if (!plan || plan.enabled === false) return false;
+  if (plan.startDate && plan.startDate > today) return false;
+  if (plan.endDate && plan.endDate < today) return false;
+  return true;
+}
+function _syncTodayRecordsForPlan(state, plan) {
+  state.medicationRecords = state.medicationRecords || [];
+  if (!_isPlanActiveToday(plan)) return [];
+  const today = _nowDateStr();
+  const expectedTimes = (plan.reminderTimes || []).map(_normalizeTimeText).filter(Boolean);
+  const expectedScheduled = expectedTimes.map(t => `${today} ${t}`);
+  state.medicationRecords = state.medicationRecords.filter(r => {
+    if (r.planId !== plan.id) return true;
+    if (!String(r.scheduledTime || '').startsWith(today + ' ')) return true;
+    if (r.status === 'done' || r.status === 'skipped') return true;
+    return expectedScheduled.indexOf(r.scheduledTime) !== -1;
+  });
+  const created = [];
+  expectedScheduled.forEach(scheduledTime => {
+    const exists = state.medicationRecords.find(r => r.planId === plan.id && r.scheduledTime === scheduledTime);
+    if (exists) {
+      if (exists.status !== 'done' && exists.status !== 'skipped') {
+        exists.status = _recordStatusForScheduledTime(scheduledTime);
+      }
+      return;
+    }
+    const rec = {
+      id: _genId('R'),
+      planId: plan.id,
+      memberId: plan.memberId,
+      medicineId: plan.medicineId,
+      doseQuantity: Number(plan.doseQuantity) || 0,
+      doseUnit: plan.doseUnit || '',
+      scheduledTime,
+      recordKey: `${plan.id}|${today}|${scheduledTime.slice(-5)}`,
+      confirmedAt: null,
+      skippedAt: null,
+      status: _recordStatusForScheduledTime(scheduledTime)
+    };
+    state.medicationRecords.push(rec);
+    created.push(rec);
+  });
+  return created;
+}
+function createOrUpdateMedicationPlan(planForm) {
+  const s = readAppState();
+  if (!s.currentFamily) throw new Error('请先创建家庭');
+  const p = planForm || {};
+  const existing = p.id ? (s.medicationPlans || []).find(x => x.id === p.id) : null;
+  const normalized = _normalizePlanForm(p, existing);
+  const medicine = (s.medicines || []).find(m => m.id === normalized.medicineId);
+  if (!medicine) throw new Error('未找到该药品');
+  const member = (s.members || []).find(m => m.id === normalized.memberId);
+  if (!member) throw new Error('未找到使用人');
+  let target = existing;
+  if (target) {
+    Object.assign(target, normalized, {
+      updatedAt: _nowDateTimeStr(),
+      updatedBy: s.currentUser.id
+    });
+  } else {
+    target = Object.assign({
+      id: _genId('P'),
+      familyId: s.currentFamily.id,
+      createdAt: _nowDateTimeStr(),
+      createdBy: s.currentUser.id
+    }, normalized);
+    s.medicationPlans = (s.medicationPlans || []).concat([target]);
+  }
+  _syncTodayRecordsForPlan(s, target);
+  _addAccessLog(s, {
+    action: existing ? '修改用药计划' : '新增用药计划',
+    target: `${medicine.name} · ${member.name} · ${target.reminderTimes.join('、')}`,
+    actionType: existing ? 'update' : 'create'
+  });
+  _writeAppState(s);
+  return _clone(target);
+}
+function setMedicationPlanEnabled(planId, enabled) {
+  const s = readAppState();
+  if (!s.currentFamily) throw new Error('请先创建家庭');
+  const plan = (s.medicationPlans || []).find(p => p.id === planId);
+  if (!plan) throw new Error('未找到用药计划');
+  plan.enabled = !!enabled;
+  plan.updatedAt = _nowDateTimeStr();
+  plan.updatedBy = s.currentUser.id;
+  if (plan.enabled) _syncTodayRecordsForPlan(s, plan);
+  const medicine = (s.medicines || []).find(m => m.id === plan.medicineId);
+  _addAccessLog(s, {
+    action: plan.enabled ? '启用用药计划' : '停用用药计划',
+    target: `${medicine ? medicine.name : '药品'} · ${plan.reminderTimes.join('、')}`,
+    actionType: plan.enabled ? 'update' : 'disable'
+  });
+  _writeAppState(s);
+  return _clone(plan);
+}
+function generateTodayMedicationRecords(planId) {
+  const s = readAppState();
+  if (!s.currentFamily) return [];
+  const plan = (s.medicationPlans || []).find(p => p.id === planId);
+  if (!plan) throw new Error('未找到用药计划');
+  const created = _syncTodayRecordsForPlan(s, plan);
+  _writeAppState(s);
+  return _clone(created);
+}
+function ensureTodayMedicationRecords() {
+  const s = readAppState();
+  if (!s.currentFamily) return [];
+  const plans = s.medicationPlans || [];
+  const created = [];
+  plans.forEach(plan => {
+    created.push(..._syncTodayRecordsForPlan(s, plan));
+  });
+  _writeAppState(s);
+  return _clone(created);
+}
 function confirmMedicationRecord(recordId) {
   const s = readAppState();
-  s.medicationRecords = (s.medicationRecords || []).map(r => {
-    if (r.id === recordId && r.status !== 'done') {
-      return Object.assign({}, r, { status: 'done', confirmedAt: _nowDateTimeStr() });
-    }
-    return r;
+  const current = (s.medicationRecords || []).find(r => r.id === recordId);
+  if (!current || current.status === 'done') return getMedicationRecords();
+  if (!reminderPolicy.isActionable(current)) throw new Error('还没有到本次服药时间');
+  const plan = (s.medicationPlans || []).find(p => p.id === current.planId);
+  const quantity = Number(plan && plan.doseQuantity) || 0;
+  const unit = String((plan && plan.doseUnit) || '');
+  let need = quantity;
+  const allocations = [];
+  if (plan && plan.deductStock !== false && quantity > 0 && unit) {
+    const batches = (s.medicineBatches || []).filter(b => b.medicineId === plan.medicineId && b.status !== 'disabled' && b.status !== 'inactive' && (!b.expireDate || b.expireDate >= _nowDateStr()) && b.unit === unit && Number(b.remainingQuantity) > 0)
+      .sort((a, b) => String(a.expireDate || '9999').localeCompare(String(b.expireDate || '9999')));
+    batches.forEach(batch => {
+      if (need <= 0) return;
+      const amount = Math.min(need, Number(batch.remainingQuantity));
+      batch.remainingQuantity -= amount;
+      need -= amount;
+      allocations.push({ batchId: batch.id, quantity: amount });
+    });
+    s.inventoryMovements = s.inventoryMovements || [];
+    s.inventoryMovements.unshift({
+      id: _genId('IM'), familyId: s.currentFamily && s.currentFamily.id,
+      medicineId: plan.medicineId, recordId, type: 'medication', quantity: -(quantity - need),
+      requestedQuantity: quantity, shortage: need, unit, allocations, createdAt: _nowDateTimeStr()
+    });
+  }
+  Object.assign(current, {
+    status: 'done', confirmedAt: _nowDateTimeStr(), medicineId: plan && plan.medicineId,
+    doseQuantity: quantity, doseUnit: unit,
+    deductedQuantity: quantity - need, stockShortage: need,
+    stockDeductionStatus: !plan || plan.deductStock === false ? 'disabled' : (quantity <= 0 || !unit ? 'needs_confirmation' : (need > 0 ? 'shortage' : 'done'))
   });
   s.accessLogs = s.accessLogs || [];
   const rec = s.medicationRecords.find(r => r.id === recordId);
@@ -578,16 +840,64 @@ function confirmMedicationRecord(recordId) {
   _writeAppState(s);
   return getMedicationRecords();
 }
+function snoozeMedicationRecord(recordId, minutes) {
+  const s = readAppState();
+  const record = (s.medicationRecords || []).find(r => r.id === recordId);
+  if (!record) throw new Error('未找到该提醒记录');
+  if (!reminderPolicy.isActionable(record)) throw new Error('当前提醒暂不能稍后处理');
+  const delay = Math.max(5, Math.min(120, Number(minutes) || 10));
+  const d = new Date(Date.now() + delay * 60000);
+  record.snoozedUntil = `${d.getFullYear()}-${_pad(d.getMonth() + 1)}-${_pad(d.getDate())} ${_pad(d.getHours())}:${_pad(d.getMinutes())}`;
+  record.status = 'pending';
+  _writeAppState(s);
+  return _clone(record);
+}
 function skipMedicationRecord(recordId) {
   const s = readAppState();
   s.medicationRecords = (s.medicationRecords || []).map(r => {
-    if (r.id === recordId && r.status !== 'done') {
+    if (r.id === recordId && r.status !== 'done' && r.status !== 'skipped') {
       return Object.assign({}, r, { status: 'skipped', skippedAt: _nowDateTimeStr() });
     }
     return r;
   });
+  const rec = s.medicationRecords.find(r => r.id === recordId);
+  if (rec) {
+    const mem = s.members.find(m => m.id === rec.memberId);
+    _addAccessLog(s, {
+      action: '跳过本次服药',
+      target: (mem ? mem.name : '家人') + ` · 记录 ${recordId}`,
+      actionType: 'update'
+    });
+  }
   _writeAppState(s);
   return getMedicationRecords();
+}
+
+function getMedicineUsageForecast(medicineId) {
+  const s = readAppState();
+  const plans = (s.medicationPlans || []).filter(p => p.medicineId === medicineId && p.enabled !== false && _isPlanActiveToday(p) && p.deductStock !== false);
+  const units = Array.from(new Set(plans.map(p => p.doseUnit).filter(Boolean)));
+  if (units.length !== 1) return { calculable: false, reason: plans.length ? '计划用量单位不一致' : '尚未配置启用的用药计划' };
+  const unit = units[0];
+  const dailyUsage = plans.reduce((sum, plan) => sum + (Number(plan.doseQuantity) || 0) * (plan.reminderTimes || []).length, 0);
+  const availableStock = (s.medicineBatches || []).filter(b => b.medicineId === medicineId && b.status !== 'disabled' && b.status !== 'inactive' && (!b.expireDate || b.expireDate >= _nowDateStr()) && b.unit === unit)
+    .reduce((sum, batch) => sum + (Number(batch.remainingQuantity) || 0), 0);
+  if (!(dailyUsage > 0)) return { calculable: false, reason: '计划用量尚未完善' };
+  const daysRemaining = Math.floor(availableStock / dailyUsage);
+  const runout = new Date();
+  runout.setDate(runout.getDate() + daysRemaining);
+  const runoutDate = `${runout.getFullYear()}-${_pad(runout.getMonth() + 1)}-${_pad(runout.getDate())}`;
+  const warningDays = Math.min(...plans.map(p => Number(p.stockWarningDays) || 7));
+  return { calculable: true, unit, dailyUsage, availableStock, daysRemaining, runoutDate, warningDays, lowStock: daysRemaining <= warningDays };
+}
+
+function getPendingInventoryAudit() {
+  const audits = readAppState().inventoryAudits || [];
+  return _clone(audits.find(a => a.status === 'pending' || a.status === 'inProgress') || null);
+}
+
+function getInventoryAuditItems(auditId) {
+  return _clone((readAppState().inventoryAuditItems || []).filter(item => item.auditId === auditId));
 }
 
 // ==================== 5. 访问日志 ====================
@@ -761,6 +1071,21 @@ function getMedicineBatchesForList(medicineId) {
     });
 }
 
+function _getActionableTodayRecords(state) {
+  const s = state || readAppState();
+  const todayPrefix = _nowDateStr() + ' ';
+  const plans = s.medicationPlans || [];
+  const seen = new Set();
+  return (s.medicationRecords || []).filter(record => {
+    if (!String(record.scheduledTime || '').startsWith(todayPrefix) || !reminderPolicy.isActionable(record)) return false;
+    const plan = plans.find(item => item.id === record.planId);
+    const key = [plan && plan.medicineId || record.medicineId || '', record.memberId || '', record.scheduledTime || '', record.doseQuantity || '', record.doseUnit || ''].join('|');
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function getDashboardStats() {
   const s = readAppState();
   if (!s.currentFamily) {
@@ -786,7 +1111,7 @@ function getDashboardStats() {
     if (severity[bs] > (severity[cur] || 0)) medicineAggregateStatus[b.medicineId] = bs;
   });
   // 仪表盘按批次级统计更实用（和 mockData 保持一致）
-  const unconfirmed = (s.medicationRecords || []).filter(r => r.status === 'pending').length;
+  const unconfirmed = _getActionableTodayRecords(s).length;
   return {
     medicineCount: meds.length,
     nearExpireCount: near,
@@ -849,7 +1174,8 @@ function getTodayAttention() {
   });
 
   // 未确认服药
-  const pending = records.filter(r => r.status === 'pending');
+  const todayPrefix = _nowDateStr() + ' ';
+  const pending = _getActionableTodayRecords(s);
   if (pending.length > 0) {
     const membersList = s.members || [];
     const names = [...new Set(pending.map(r => {
@@ -874,16 +1200,28 @@ function generateElderReminders() {
   const meds = s.medicines || [];
   const membersList = s.members || [];
   const records = s.medicationRecords || [];
-  const reminders = records.map(r => {
+  const todayPrefix = _nowDateStr() + ' ';
+  const visibleRecords = [];
+  const seen = new Set();
+  records.filter(r => String(r.scheduledTime || '').startsWith(todayPrefix)).forEach(r => {
+    const plan = plans.find(p => p.id === r.planId);
+    const key = [plan && plan.medicineId || r.medicineId || '', r.memberId || '', r.scheduledTime || '', r.doseQuantity || '', r.doseUnit || ''].join('|');
+    if (seen.has(key) && r.status !== 'done' && r.status !== 'skipped') return;
+    seen.add(key);
+    visibleRecords.push(r);
+  });
+  const reminders = visibleRecords.map(r => {
     const plan = plans.find(p => p.id === r.planId);
     const medicine = plan ? meds.find(m => m.id === plan.medicineId) : null;
     const mem = membersList.find(m => m.id === r.memberId);
-    const st = r.status || 'pending';
+    const st = reminderPolicy.classify(r);
     let label = '待服用';
     if (st === 'done') label = '已确认服用';
     else if (st === 'skipped') label = '已跳过';
     else if (st === 'missed') label = '已错过';
-    else if (st === 'upcoming') label = '稍后服用';
+    else if (st === 'upcoming') label = '今日稍后';
+    else if (st === 'snoozed') label = `稍后提醒至 ${(r.snoozedUntil || '').slice(-5)}`;
+    else if (st === 'overdue') label = '已超时，待确认';
     const timeOnly = (r.scheduledTime || '').includes(' ')
       ? r.scheduledTime.split(' ')[1]
       : (r.scheduledTime || '--:--');
@@ -896,6 +1234,9 @@ function generateElderReminders() {
       time: timeOnly,
       dosage: plan ? plan.dosePerTime : '1份',
       status: st, statusLabel: label,
+      actionable: st === 'due' || st === 'overdue',
+      snoozedUntil: r.snoozedUntil || '',
+      displayHint: st === 'snoozed' ? label : `将在 ${timeOnly} 提醒，未到时间不能确认`,
       icon: '💊'
     };
   });
@@ -1017,12 +1358,15 @@ module.exports = {
   readAppState,
   hasFamily,
   hasAnyMedicine,
+  syncFromCloudSnapshot,
+  getActiveFamilyId,
 
   // ---- 用户 & 家庭 ----
   getCurrentUser,
   updateCurrentUser,
   getCurrentFamily,
   getMembers,
+  clearFamilyCache,
   createFamily,
 
   // ---- 成员预设关系模板（本地快速添加） ----
@@ -1042,9 +1386,18 @@ module.exports = {
 
   // ---- 提醒计划 & 记录（兼容第四阶段老人端） ----
   getMedicationPlans,
+  getMedicationPlansByMedicine,
   getMedicationRecords,
+  createOrUpdateMedicationPlan,
+  setMedicationPlanEnabled,
+  generateTodayMedicationRecords,
+  ensureTodayMedicationRecords,
   confirmMedicationRecord,
+  snoozeMedicationRecord,
   skipMedicationRecord,
+  getMedicineUsageForecast,
+  getPendingInventoryAudit,
+  getInventoryAuditItems,
   generateElderReminders,
 
   // ---- 访问日志 ----
